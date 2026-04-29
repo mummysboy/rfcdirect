@@ -50,3 +50,6 @@ supabase/.temp/
 
 # Claude Code local overrides (agents/ is checked in; local settings are not)
 .claude/settings.local.json
+
+# Local Netlify folder
+.netlify

@@ -115,6 +115,27 @@ A feature is done when:
 5. Manual smoke test passes.
 6. If it touched the schema: migration file exists, types regenerated.
 
+## Deployment (web)
+
+Web is the primary deploy target. Build with `npx expo export --platform web --output-dir dist`; `netlify.toml` wires this into Netlify. Production Supabase and Mapbox credentials live in the Netlify project env (`EXPO_PUBLIC_*`), never in the repo.
+
+Two gotchas when deploying from a developer machine:
+
+1. **Local `.env` overrides Netlify's injected env at build time.** Expo's Metro reads dotenv and those values win over `process.env`. Move `.env` aside before building, or your local-dev URLs (e.g. local Supabase) will bake into the production bundle.
+2. **Metro caches bundles between runs.** Always pass `--clear` to `expo export` for production builds; otherwise a stale bundle gets uploaded with no warning.
+
+Working sequence:
+
+```bash
+mv .env .env.bak
+EXPO_PUBLIC_SUPABASE_URL=… EXPO_PUBLIC_SUPABASE_ANON_KEY=… EXPO_PUBLIC_MAPBOX_TOKEN=… \
+  npx expo export --platform web --output-dir dist --clear
+netlify deploy --prod --dir dist
+mv .env.bak .env
+```
+
+Verify before declaring done — grep the live bundle for the production Supabase host. Don't trust "Deploy is live!" alone.
+
 ## Subagents
 
 These live in `.claude/agents/` once the project is scaffolded. Initial set:
