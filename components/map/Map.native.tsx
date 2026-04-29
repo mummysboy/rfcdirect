@@ -2,11 +2,21 @@ import { Text, View } from 'react-native';
 
 import type { ClubWithDistance } from '@/lib/queries';
 
+export type MapBounds = {
+  north: number;
+  south: number;
+  east: number;
+  west: number;
+};
+
 type Props = {
   center?: { lng: number; lat: number };
   radiusMiles: number;
   clubs: ClubWithDistance[];
-  onPinPress?: (slug: string) => void;
+  selectedSlug?: string | null;
+  bounceTick?: number;
+  onPinSelect?: (slug: string) => void;
+  onBoundsChange?: (bounds: MapBounds) => void;
 };
 
 // Native map is not yet wired up — `@rnmapbox/maps` is in deps but the

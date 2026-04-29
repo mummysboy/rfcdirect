@@ -10,27 +10,54 @@ type MapboxModule = typeof import('mapbox-gl');
 type MapboxMap = InstanceType<MapboxModule['Map']>;
 type MapboxMarker = InstanceType<MapboxModule['Marker']>;
 
+export type MapBounds = {
+  north: number;
+  south: number;
+  east: number;
+  west: number;
+};
+
 type Props = {
   center?: { lng: number; lat: number };
   radiusMiles: number;
   clubs: ClubWithDistance[];
-  onPinPress?: (slug: string) => void;
+  selectedSlug?: string | null;
+  /** Increment to replay the selected pin's bounce animation. */
+  bounceTick?: number;
+  onPinSelect?: (slug: string) => void;
+  onBoundsChange?: (bounds: MapBounds) => void;
 };
 
-// Continental US default until the user selects a location.
-const DEFAULT_CENTER: [number, number] = [-98, 39];
-const DEFAULT_ZOOM = 3.5;
+// Continental US bounding box (SW, NE) — used when no location is selected
+// so the default view always frames the whole country regardless of viewport.
+const US_BOUNDS: [[number, number], [number, number]] = [
+  [-125, 24],
+  [-66, 49],
+];
+const US_FIT_PADDING = 24;
 const EMPTY_DATA = { type: 'FeatureCollection' as const, features: [] };
 
-export function Map({ center, radiusMiles, clubs, onPinPress }: Props) {
+export function Map({
+  center,
+  radiusMiles,
+  clubs,
+  selectedSlug,
+  bounceTick,
+  onPinSelect,
+  onBoundsChange,
+}: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapboxMap | null>(null);
   const markersRef = useRef<MapboxMarker[]>([]);
+  const markerElsBySlugRef = useRef<Record<string, HTMLDivElement>>({});
+  const clubsBySlugRef = useRef<Record<string, ClubWithDistance>>({});
   const mapboxRef = useRef<MapboxModule | null>(null);
 
-  // Pin handler can change between renders; markers read latest via ref.
-  const onPinPressRef = useRef(onPinPress);
-  onPinPressRef.current = onPinPress;
+  // Handlers can change between renders; map listeners read latest via ref.
+  const onPinSelectRef = useRef(onPinSelect);
+  onPinSelectRef.current = onPinSelect;
+  const onBoundsChangeRef = useRef(onBoundsChange);
+  onBoundsChangeRef.current = onBoundsChange;
 
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,8 +76,15 @@ export function Map({ center, radiusMiles, clubs, onPinPress }: Props) {
         const map = new mod.Map({
           container: containerRef.current,
           style: 'mapbox://styles/mapbox/streets-v12',
-          center: center ? [center.lng, center.lat] : DEFAULT_CENTER,
-          zoom: center ? zoomForRadius(radiusMiles) : DEFAULT_ZOOM,
+          ...(center
+            ? {
+                center: [center.lng, center.lat],
+                zoom: zoomForRadius(radiusMiles),
+              }
+            : {
+                bounds: US_BOUNDS,
+                fitBoundsOptions: { padding: US_FIT_PADDING },
+              }),
           accessToken: token,
           attributionControl: false,
         });
@@ -81,7 +115,22 @@ export function Map({ center, radiusMiles, clubs, onPinPress }: Props) {
             },
           });
           setReady(true);
+          emitBounds();
         });
+
+        const emitBounds = () => {
+          const cb = onBoundsChangeRef.current;
+          if (!cb) return;
+          const b = map.getBounds();
+          if (!b) return;
+          cb({
+            north: b.getNorth(),
+            south: b.getSouth(),
+            east: b.getEast(),
+            west: b.getWest(),
+          });
+        };
+        map.on('moveend', emitBounds);
 
         mapRef.current = map;
       } catch (err) {
@@ -104,11 +153,18 @@ export function Map({ center, radiusMiles, clubs, onPinPress }: Props) {
   useEffect(() => {
     const map = mapRef.current;
     if (!ready || !map) return;
-    map.flyTo({
-      center: center ? [center.lng, center.lat] : DEFAULT_CENTER,
-      zoom: center ? zoomForRadius(radiusMiles) : DEFAULT_ZOOM,
-      essential: true,
-    });
+    if (center) {
+      map.flyTo({
+        center: [center.lng, center.lat],
+        zoom: zoomForRadius(radiusMiles),
+        essential: true,
+      });
+    } else {
+      map.fitBounds(US_BOUNDS, {
+        padding: US_FIT_PADDING,
+        essential: true,
+      });
+    }
     const src = map.getSource('radius') as
       | InstanceType<MapboxModule['GeoJSONSource']>
       | undefined;
@@ -126,6 +182,8 @@ export function Map({ center, radiusMiles, clubs, onPinPress }: Props) {
     if (!ready || !map || !mod) return;
 
     markersRef.current.forEach((m) => m.remove());
+    markerElsBySlugRef.current = {};
+    clubsBySlugRef.current = {};
     markersRef.current = clubs.map((club) => {
       const el = document.createElement('div');
       el.style.cssText = `
@@ -136,17 +194,65 @@ export function Map({ center, radiusMiles, clubs, onPinPress }: Props) {
         border: 3px solid ${COLORS.surface};
         cursor: pointer;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+        transition: box-shadow 160ms ease;
+        will-change: transform;
       `;
       el.setAttribute(
         'aria-label',
         `${club.name}, ${club.distance_miles.toFixed(1)} miles`,
       );
-      el.addEventListener('click', () => onPinPressRef.current?.(club.slug));
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        onPinSelectRef.current?.(club.slug);
+      });
+      markerElsBySlugRef.current[club.slug] = el;
+      clubsBySlugRef.current[club.slug] = club;
       return new mod.Marker(el)
         .setLngLat([club.longitude, club.latitude])
         .addTo(map);
     });
   }, [clubs, ready]);
+
+  // Selection visual: thick accent ring on the selected pin, plain on others.
+  useEffect(() => {
+    if (!ready) return;
+    for (const [slug, el] of Object.entries(markerElsBySlugRef.current)) {
+      el.style.boxShadow =
+        slug === selectedSlug
+          ? `0 0 0 3px ${COLORS.accent}, 0 1px 3px rgba(0, 0, 0, 0.25)`
+          : '0 1px 3px rgba(0, 0, 0, 0.25)';
+      el.style.zIndex = slug === selectedSlug ? '10' : '0';
+    }
+  }, [selectedSlug, ready, clubs]);
+
+  // Fly + bounce when selection comes from the list (bounceTick increments).
+  useEffect(() => {
+    if (!ready || !selectedSlug || !bounceTick) return;
+    const map = mapRef.current;
+    const club = clubsBySlugRef.current[selectedSlug];
+    const el = markerElsBySlugRef.current[selectedSlug];
+    if (!map || !club || !el) return;
+
+    map.easeTo({
+      center: [club.longitude, club.latitude],
+      duration: 320,
+      essential: true,
+    });
+
+    const reduced =
+      typeof window !== 'undefined' &&
+      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if (reduced) return;
+
+    el.animate(
+      [
+        { transform: 'scale(1)' },
+        { transform: 'scale(1.6)' },
+        { transform: 'scale(1)' },
+      ],
+      { duration: 320, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' },
+    );
+  }, [bounceTick, selectedSlug, ready]);
 
   if (!token) {
     return (

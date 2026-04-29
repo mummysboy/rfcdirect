@@ -34,6 +34,9 @@ export const copy = {
     expandRadiusCta: 'Expand radius +25 mi',
     resultsCount: (n: number) =>
       n === 1 ? '1 club in range' : `${n} clubs in range`,
+    resultsInView: (n: number) =>
+      n === 1 ? '1 club in view' : `${n} clubs in view`,
+    emptyNoClubsInView: 'No clubs in this area. Pan or zoom out.',
     findingClubs: 'Finding clubs near you…',
     loadError: "Couldn't load clubs. Pull to retry.",
   },

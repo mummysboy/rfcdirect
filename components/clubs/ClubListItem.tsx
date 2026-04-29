@@ -1,10 +1,18 @@
-import { Link } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
 
 import { categoryLabels, copy, divisionLabels } from '@/lib/copy';
 import type { ClubWithDistance } from '@/lib/queries';
 
-type Props = { club: ClubWithDistance };
+import { ClubExpanded } from './ClubExpanded';
+
+type Props = {
+  club: ClubWithDistance;
+  selected?: boolean;
+  expanded?: boolean;
+  /** Hide the distance label — useful when the row is shown without a search center. */
+  hideDistance?: boolean;
+  onPress?: (slug: string) => void;
+};
 
 function metaLine(club: ClubWithDistance): string {
   const parts: string[] = [
@@ -19,10 +27,23 @@ function initial(name: string): string {
   return name.trim().charAt(0).toUpperCase() || '?';
 }
 
-export function ClubListItem({ club }: Props) {
+export function ClubListItem({
+  club,
+  selected,
+  expanded,
+  hideDistance,
+  onPress,
+}: Props) {
   return (
-    <Link href={`/club/${club.slug}`} asChild>
-      <Pressable className="flex-row items-center gap-3 border-b border-border bg-surface px-4 py-3 active:bg-bg">
+    <View className={selected ? 'border-l-4 border-l-accent' : ''}>
+      <Pressable
+        onPress={() => onPress?.(club.slug)}
+        accessibilityRole="button"
+        accessibilityState={{ selected: !!selected, expanded: !!expanded }}
+        className={`flex-row items-center gap-3 border-b border-border py-3 active:bg-bg ${
+          selected ? 'bg-bg pl-3 pr-4' : 'bg-surface px-4'
+        }`}
+      >
         <View className="h-10 w-10 items-center justify-center rounded-full bg-bg">
           <Text className="font-serif text-h2 text-fg">{initial(club.name)}</Text>
         </View>
@@ -34,10 +55,13 @@ export function ClubListItem({ club }: Props) {
             {metaLine(club)}
           </Text>
         </View>
-        <Text className="text-eyebrow uppercase tracking-eyebrow text-muted">
-          {copy.club.distanceLabel(club.distance_miles)}
-        </Text>
+        {hideDistance ? null : (
+          <Text className="text-eyebrow uppercase tracking-eyebrow text-muted">
+            {copy.club.distanceLabel(club.distance_miles)}
+          </Text>
+        )}
       </Pressable>
-    </Link>
+      {expanded ? <ClubExpanded slug={club.slug} /> : null}
+    </View>
   );
 }

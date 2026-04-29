@@ -27,8 +27,8 @@ export function RadiusPicker({ value, onChange }: Props) {
               accessibilityState={{ selected }}
               className={
                 selected
-                  ? 'rounded-full bg-fg px-4 py-2'
-                  : 'rounded-full border border-border bg-surface px-4 py-2'
+                  ? 'flex-1 items-center rounded-full bg-fg py-2'
+                  : 'flex-1 items-center rounded-full border border-border bg-surface py-2'
               }
             >
               <Text

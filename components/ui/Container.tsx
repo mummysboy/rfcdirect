@@ -10,7 +10,11 @@ export function Container({
   edges = ['top', 'bottom'],
 }: PropsWithChildren<Props>) {
   return (
-    <SafeAreaView className="flex-1 bg-bg" edges={edges}>
+    <SafeAreaView
+      className="flex-1 bg-bg"
+      edges={edges}
+      style={{ minWidth: 0, maxWidth: '100%' }}
+    >
       {children}
     </SafeAreaView>
   );
