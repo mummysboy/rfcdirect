@@ -24,7 +24,10 @@ export const copy = {
   home: {
     tagline: 'Find rugby clubs near you',
     locationPlaceholder: 'Enter a location',
+    searchingNear: (location: string) => `Showing clubs near ${location}`,
+    geocodingNote: 'Add a Mapbox token to .env to search any location.',
     radiusLabel: (miles: number) => `${miles} mi`,
+    radiusEyebrow: 'Radius',
     emptyNoLocation: 'Enter a location to find rugby clubs near you',
     emptyNoResults: (radius: number, location: string) =>
       `No clubs found within ${radius} miles of ${location}. Try expanding your search.`,
@@ -32,6 +35,7 @@ export const copy = {
     resultsCount: (n: number) =>
       n === 1 ? '1 club in range' : `${n} clubs in range`,
     findingClubs: 'Finding clubs near you…',
+    loadError: "Couldn't load clubs. Pull to retry.",
   },
 
   club: {

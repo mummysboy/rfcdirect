@@ -47,7 +47,9 @@ create index clubs_claimed_by_idx on public.clubs (claimed_by);
 create table public.claims (
   id uuid primary key default gen_random_uuid(),
   club_id uuid not null references public.clubs(id) on delete cascade,
-  user_id uuid not null references auth.users(id) on delete cascade,
+  -- Defaults to the caller's auth uid so the client doesn't have to pass it;
+  -- the RLS policy below still enforces user_id = auth.uid() for safety.
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
   status text not null default 'pending' check (status in (
     'pending','approved','rejected'
   )),
