@@ -1,6 +1,6 @@
 # Build & publish ---------------------------------------------------------
 [build]
-  command = "npx expo export --platform web --output-dir dist"
+  command = "echo '--- EXPO_PUBLIC_* visible to build ---' && env | awk -F= '/^EXPO_PUBLIC_/ { print $1 \" = \" length($2) \" chars\" }' && echo '---' && npx expo export --platform web --output-dir dist"
   publish = "dist"
 
 [build.environment]
