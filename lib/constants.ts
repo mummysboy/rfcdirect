@@ -32,6 +32,37 @@ export type Category = (typeof CATEGORIES)[number];
 export const STATUSES = ['pending', 'approved', 'rejected'] as const;
 export type Status = (typeof STATUSES)[number];
 
+/**
+ * Practice-day codes. The DB CHECK constraint restricts `clubs.practice_days`
+ * to this set; display labels are in `lib/copy.ts`.
+ */
+export const DAYS_OF_WEEK = [
+  'mon',
+  'tue',
+  'wed',
+  'thu',
+  'fri',
+  'sat',
+  'sun',
+] as const;
+export type DayOfWeek = (typeof DAYS_OF_WEEK)[number];
+
+/** Named refs so app code never inlines a status literal. */
+export const STATUS = {
+  pending: 'pending',
+  approved: 'approved',
+  rejected: 'rejected',
+} as const satisfies Record<Status, Status>;
+
+/** Default values selected for a brand-new club's enum fields. */
+export const DEFAULT_DIVISION: Division = 'social';
+export const DEFAULT_CATEGORY: Category = 'mens';
+
+/** Supabase Storage bucket names — keyed by their app role, not by vertical. */
+export const STORAGE_BUCKETS = {
+  logos: 'club-logos',
+} as const;
+
 export const RADIUS_MILES = {
   default: 25,
   min: 5,
@@ -64,3 +95,27 @@ export const TYPE_SCALE = {
   meta: [12, 18],
   eyebrow: [11, 15],
 } as const;
+
+/**
+ * Curated brand-color swatches offered to club admins on the profile editor.
+ * These are tint colors for the hero — picked to read against white type.
+ * Owners can also enter a custom hex; this list is the quick-pick.
+ */
+export const BRAND_SWATCHES = [
+  '#1A1A1A',
+  '#1B3A5F',
+  '#2253AE',
+  '#1F6F6E',
+  '#2A523B',
+  '#1E4F2E',
+  '#5C2A6B',
+  '#5C0F1F',
+  '#6E0E1B',
+  '#B5161E',
+  '#DB6A1A',
+  '#D6A21B',
+  '#5BA8D6',
+  '#6B4A2B',
+  '#3D2E2A',
+  '#4A4F5C',
+] as const;

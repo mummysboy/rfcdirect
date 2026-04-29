@@ -7,10 +7,11 @@ import { debounce, geocode, type GeocodeResult } from '@/lib/geo';
 
 type Props = {
   onSelect: (result: GeocodeResult) => void;
+  initialValue?: string;
 };
 
-export function LocationSearch({ onSelect }: Props) {
-  const [text, setText] = useState('');
+export function LocationSearch({ onSelect, initialValue = '' }: Props) {
+  const [text, setText] = useState(initialValue);
   const [results, setResults] = useState<GeocodeResult[]>([]);
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);

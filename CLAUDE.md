@@ -98,6 +98,7 @@ Don't add a testing setup unsolicited; ask first.
 - Run `supabase gen types typescript` after schema changes to refresh `types/database.ts`.
 - Use RPCs (Postgres functions) for anything geospatial or anything involving multiple tables.
 - RLS is on for every table. New tables require RLS policies as part of the same migration.
+- `lib/supabase.ts` deliberately defers the env-var error to first use via a Proxy fallback. Don't replace this with a `throw` at module load — it'll break Expo's static-render pass on hosts that don't expose `EXPO_PUBLIC_*` to the build environment. The runtime still fails loudly if the env is genuinely missing.
 
 ## Working with Mapbox
 

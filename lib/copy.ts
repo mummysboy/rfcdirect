@@ -8,7 +8,7 @@
  * doesn't have to change on fork — only the values do.
  */
 
-import type { Category, Division, Status } from './constants';
+import type { Category, DayOfWeek, Division, Status } from './constants';
 
 export const copy = {
   brand: {
@@ -19,6 +19,7 @@ export const copy = {
   nav: {
     manageClub: 'Manage a club',
     signOut: 'Sign out',
+    back: 'Back',
   },
 
   home: {
@@ -55,13 +56,23 @@ export const copy = {
       social: 'Social',
     },
     fields: {
-      location: 'Location',
+      name: 'Name',
+      location: 'Practice location',
       founded: 'Founded',
       division: 'Division',
       category: 'Category',
       website: 'Website',
       email: 'Email',
       phone: 'Phone',
+      practiceDays: 'Practice days',
+      practiceTimes: 'Practice times',
+    },
+    validation: {
+      nameRequired: 'Name is required',
+      descriptionTooShort:
+        'Description should be at least a sentence or two',
+      addressRequired: 'Address is required',
+      hexInvalid: 'Use a hex color like #B5161E',
     },
   },
 
@@ -72,8 +83,13 @@ export const copy = {
     passwordLabel: 'Password',
     signInCta: 'Sign in',
     signUpCta: 'Create account',
+    signInLoading: 'Signing in…',
+    signUpLoading: 'Creating account…',
     switchToSignUp: "Don't have an account? Sign up",
     switchToSignIn: 'Already have an account? Sign in',
+    genericError: 'Something went wrong. Try again.',
+    invalidEmail: 'Enter a valid email address',
+    passwordTooShort: 'Password must be at least 8 characters',
   },
 
   admin: {
@@ -88,6 +104,14 @@ export const copy = {
     savingState: 'Saving…',
     saveSuccess: 'Profile saved',
     claimSubmitted: 'Claim submitted for review',
+    uploadLogo: 'Upload logo',
+    replaceLogo: 'Replace logo',
+    moderateCta: 'Moderate',
+    moderateTitle: 'Pending claims',
+    noPendingClaims: 'No pending claims.',
+    approveCta: 'Approve',
+    rejectCta: 'Reject',
+    listedContactLabel: (email: string) => `Listed contact: ${email}`,
   },
 
   notFound: {
@@ -128,4 +152,14 @@ export const statusLabels: Record<Status, string> = {
   pending: 'Pending',
   approved: 'Approved',
   rejected: 'Rejected',
+};
+
+export const dayLabels: Record<DayOfWeek, string> = {
+  mon: 'Mon',
+  tue: 'Tue',
+  wed: 'Wed',
+  thu: 'Thu',
+  fri: 'Fri',
+  sat: 'Sat',
+  sun: 'Sun',
 };

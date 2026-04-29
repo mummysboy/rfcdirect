@@ -13,8 +13,11 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Container } from '@/components/ui/Container';
+import { useSession } from '@/lib/auth';
 import { COLORS } from '@/lib/constants';
 import { categoryLabels, copy, divisionLabels } from '@/lib/copy';
+import { formatPracticeDays, formatPracticeTimes } from '@/lib/practice';
+import { facebookUrl, instagramUrl, socialDisplay } from '@/lib/socials';
 import { type Club, getClubBySlug } from '@/lib/queries';
 
 type FetchState =
@@ -85,7 +88,15 @@ export default function ClubProfileScreen() {
 
 function ProfileContent({ club }: { club: Club }) {
   const insets = useSafeAreaInsets();
+  const session = useSession();
   const brand = club.brand_color ?? COLORS.defaultBrand;
+
+  const isOwner =
+    session.status === 'authenticated' && session.user.id === club.claimed_by;
+  // Claim-prompt is shown to anyone (signed-in or not); the (admin) gate
+  // handles the auth bounce when an unauthed visitor follows the link.
+  const showClaimPrompt =
+    session.status !== 'loading' && club.claimed_by === null;
 
   const contactHref = club.contact_email
     ? `mailto:${club.contact_email}`
@@ -117,6 +128,23 @@ function ProfileContent({ club }: { club: Club }) {
             {copy.brand.wordmark}
           </Text>
 
+          {isOwner ? (
+            <Link
+              href={{
+                pathname: '/clubs/[id]/edit',
+                params: { id: club.id },
+              }}
+              asChild
+            >
+              <Pressable
+                accessibilityRole="button"
+                className="absolute right-3 top-3 rounded-full bg-surface px-4 py-2 active:opacity-80"
+              >
+                <Text className="text-meta text-fg">{copy.club.editCta}</Text>
+              </Pressable>
+            </Link>
+          ) : null}
+
           <View className="mt-5 flex-row items-center gap-3">
             <ClubLogo club={club} />
             <Text
@@ -142,6 +170,17 @@ function ProfileContent({ club }: { club: Club }) {
           </View>
         </View>
 
+        {showClaimPrompt ? (
+          <View className="border-b border-border bg-surface px-4 py-3">
+            <Link
+              href="/claim"
+              className="text-meta text-muted underline"
+            >
+              {copy.club.claimPrompt}
+            </Link>
+          </View>
+        ) : null}
+
         <View className="px-4 py-5">
           <SectionHeader>{copy.club.sections.about}</SectionHeader>
           <Text className="mt-2 text-body text-fg">{club.description}</Text>
@@ -154,6 +193,18 @@ function ProfileContent({ club }: { club: Club }) {
               label={copy.club.fields.location}
               value={club.address_display}
             />
+            {club.practice_days && club.practice_days.length > 0 ? (
+              <DetailRow
+                label={copy.club.fields.practiceDays}
+                value={formatPracticeDays(club.practice_days)}
+              />
+            ) : null}
+            {club.practice_times ? (
+              <DetailRow
+                label={copy.club.fields.practiceTimes}
+                value={formatPracticeTimes(club.practice_times)}
+              />
+            ) : null}
             {club.year_founded ? (
               <DetailRow
                 label={copy.club.fields.founded}
@@ -200,6 +251,30 @@ function ProfileContent({ club }: { club: Club }) {
             ) : null}
           </View>
         </View>
+
+        {club.social_instagram || club.social_facebook ? (
+          <View className="border-t border-border px-4 py-5">
+            <SectionHeader>{copy.club.sections.social}</SectionHeader>
+            <View className="mt-3 gap-3">
+              {club.social_instagram ? (
+                <DetailRow
+                  label="Instagram"
+                  value={socialDisplay(club.social_instagram)}
+                  href={instagramUrl(club.social_instagram)}
+                  linkColor={brand}
+                />
+              ) : null}
+              {club.social_facebook ? (
+                <DetailRow
+                  label="Facebook"
+                  value={socialDisplay(club.social_facebook)}
+                  href={facebookUrl(club.social_facebook)}
+                  linkColor={brand}
+                />
+              ) : null}
+            </View>
+          </View>
+        ) : null}
       </ScrollView>
 
       <View
@@ -315,3 +390,4 @@ function domainOf(url: string): string {
     return url;
   }
 }
+

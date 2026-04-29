@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Linking, Pressable, Text, View } from 'react-native';
 
 import { categoryLabels, copy, divisionLabels } from '@/lib/copy';
+import { formatPracticeDays, formatPracticeTimes } from '@/lib/practice';
+import { facebookUrl, instagramUrl, socialDisplay } from '@/lib/socials';
 import { type Club, getClubBySlug } from '@/lib/queries';
 
 type Props = { slug: string };
@@ -56,6 +58,18 @@ export function ClubExpanded({ slug }: Props) {
 
       <View className="gap-2">
         <DetailRow label={copy.club.fields.location} value={club.address_display} />
+        {club.practice_days && club.practice_days.length > 0 ? (
+          <DetailRow
+            label={copy.club.fields.practiceDays}
+            value={formatPracticeDays(club.practice_days)}
+          />
+        ) : null}
+        {club.practice_times ? (
+          <DetailRow
+            label={copy.club.fields.practiceTimes}
+            value={formatPracticeTimes(club.practice_times)}
+          />
+        ) : null}
         {club.year_founded ? (
           <DetailRow
             label={copy.club.fields.founded}
@@ -95,6 +109,20 @@ export function ClubExpanded({ slug }: Props) {
             label={copy.club.fields.phone}
             value={club.contact_phone}
             href={`tel:${club.contact_phone}`}
+          />
+        ) : null}
+        {club.social_instagram ? (
+          <DetailRow
+            label="Instagram"
+            value={socialDisplay(club.social_instagram)}
+            href={instagramUrl(club.social_instagram)}
+          />
+        ) : null}
+        {club.social_facebook ? (
+          <DetailRow
+            label="Facebook"
+            value={socialDisplay(club.social_facebook)}
+            href={facebookUrl(club.social_facebook)}
           />
         ) : null}
       </View>
