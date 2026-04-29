@@ -1,50 +1,67 @@
-# Welcome to your Expo app 👋
+# Rugby Direct
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A location-based directory for finding rugby clubs. Enter a location, set a radius, see every club in range on a map and in a list.
 
-## Get started
+## What it is
 
-1. Install dependencies
+Rugby Direct is the answer to "is there a rugby club near me?" — a question that today gets answered with a frustrating mix of Google searches, dead Facebook pages, and word of mouth. We make it a thirty-second lookup.
 
-   ```bash
-   npm install
-   ```
+**Two audiences:**
+- **Players looking for a club** — enter a location, see clubs nearby with the info needed to decide which to contact.
+- **Clubs wanting to be found** — claim a profile, fill in the details, get discovered.
 
-2. Start the app
+## MVP scope (v1)
 
-   ```bash
-   npx expo start
-   ```
+**In scope:**
+- Browse clubs by location + radius (map + list view)
+- View full club profile (name, location, year founded, division, gender/age category, description, contact info, social links, logo)
+- Club admins can sign up, claim a seeded profile, and edit it
+- Seeded data: real rugby clubs added manually so the app is useful from day one
+- Web first, with iOS and Android from the same codebase
 
-In the output, you'll find options to open the app in a
+**Explicitly out of scope for v1:**
+- Player accounts, favorites, or saved searches
+- Messaging between players and clubs
+- Events, schedules, or RSVPs
+- Reviews or ratings
+- Match results or league tables
+- Automated club verification (claims are manually approved)
+- Multiple locations per club
+- Multi-language support
+- Push notifications
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+These are deliberately deferred. Discovery is the wedge; everything else can come after.
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## The v1 demo
 
-## Get a fresh project
+> Open the app. Enter "San Jose, CA". Set radius to 25 miles. See pins on a map and a list of rugby clubs in range. Tap one. See the full profile — logo, founding year, division, contact info, link to their website. Switch to admin view, sign in, edit a club's bio, save, see it reflected on the public profile.
 
-When you're ready, run:
+If we can deliver that, v1 ships.
 
-```bash
-npm run reset-project
-```
+## Tech stack
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+- **Frontend:** Expo (React Native) with Expo Router — single codebase targets web, iOS, and Android
+- **Backend:** Supabase — Postgres with PostGIS for geospatial queries, Supabase Auth for club admins, Supabase Storage for logos
+- **Maps:** Mapbox (`@rnmapbox/maps` for native, `mapbox-gl` for web)
+- **Location autocomplete:** Mapbox Geocoding API
 
-## Learn more
+See `DESIGN.md` for why each piece was chosen.
 
-To learn more about developing your project with Expo, look at the following resources:
+## Why niche-by-niche
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+Rugby Direct is the first instance of a template. The same codebase, re-skinned, becomes Climbing Direct, D&D Direct, Birding Direct, etc. Rugby is the launch vertical because it has clear structured filters (division, gender/age) and a coachable founder (the dev coaches a D1 club). The architecture keeps rugby-specific logic isolated so forking is mechanical.
 
-## Join the community
+## Getting started
 
-Join our community of developers creating universal apps.
+> *To be filled in once the project is scaffolded. Will cover: clone, install (`npm install`), Supabase project setup, environment variables (`.env.example`), Mapbox token, running `npx expo start`.*
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## Project status
+
+Pre-development. Specs in place; scaffolding next.
+
+## Repository docs
+
+- `README.md` — this file (what and why)
+- `DESIGN.md` — architecture, data model, user flows
+- `UX.md` — visual direction, screen specs, interaction states
+- `CLAUDE.md` — instructions for Claude Code when working on this repo
