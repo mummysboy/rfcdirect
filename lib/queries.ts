@@ -22,6 +22,14 @@ export async function listClubsWithinRadius(args: {
   return data ?? [];
 }
 
+// All approved clubs for the no-location default map view. Uses the existing
+// `clubs_within_radius` RPC with a continental US center and a radius wide
+// enough to cover everywhere — avoids a new migration for a separate "all
+// approved" RPC. Capped at the RPC's limit of 200, fine for current scale.
+export async function listAllClubs(): Promise<ClubWithDistance[]> {
+  return listClubsWithinRadius({ lat: 39, lng: -98, radiusMiles: 4000 });
+}
+
 export async function getClubBySlug(slug: string): Promise<Club | null> {
   const { data, error } = await supabase
     .from('clubs')
