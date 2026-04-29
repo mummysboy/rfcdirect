@@ -1,0 +1,26 @@
+# Build & publish ---------------------------------------------------------
+[build]
+  command = "npx expo export --platform web --output-dir dist"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# Rewrites for Expo Router dynamic routes --------------------------------
+# Static export produces HTML shells with literal `[bracket]` segments;
+# rewrite real URLs to those shells so client-side routing can take over.
+[[redirects]]
+  from = "/club/*"
+  to = "/club/[slug].html"
+  status = 200
+
+[[redirects]]
+  from = "/clubs/:id/edit"
+  to = "/clubs/[id]/edit.html"
+  status = 200
+
+# Branded 404 fallback for any unmatched route ---------------------------
+[[redirects]]
+  from = "/*"
+  to = "/+not-found.html"
+  status = 404
