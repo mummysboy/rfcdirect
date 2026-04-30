@@ -146,6 +146,9 @@ export type ClubSearchResult = Pick<
 export type PendingClaim =
   Database['public']['Functions']['list_pending_claims_for_admin']['Returns'][number];
 
+export type PendingClub =
+  Database['public']['Functions']['list_pending_clubs_for_admin']['Returns'][number];
+
 export async function isAdmin(): Promise<boolean> {
   const { data, error } = await supabase.rpc('is_admin');
   if (error) throw error;
@@ -154,6 +157,12 @@ export async function isAdmin(): Promise<boolean> {
 
 export async function listPendingClaims(): Promise<PendingClaim[]> {
   const { data, error } = await supabase.rpc('list_pending_claims_for_admin');
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function listPendingClubs(): Promise<PendingClub[]> {
+  const { data, error } = await supabase.rpc('list_pending_clubs_for_admin');
   if (error) throw error;
   return data ?? [];
 }
@@ -168,6 +177,20 @@ export async function approveClaim(claimId: string): Promise<void> {
 export async function rejectClaim(claimId: string): Promise<void> {
   const { error } = await supabase.rpc('reject_claim', {
     p_claim_id: claimId,
+  });
+  if (error) throw error;
+}
+
+export async function approveClub(clubId: string): Promise<void> {
+  const { error } = await supabase.rpc('approve_club', {
+    p_club_id: clubId,
+  });
+  if (error) throw error;
+}
+
+export async function rejectClub(clubId: string): Promise<void> {
+  const { error } = await supabase.rpc('reject_club', {
+    p_club_id: clubId,
   });
   if (error) throw error;
 }

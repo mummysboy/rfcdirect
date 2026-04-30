@@ -107,11 +107,17 @@ export const copy = {
     uploadLogo: 'Upload logo',
     replaceLogo: 'Replace logo',
     moderateCta: 'Moderate',
-    moderateTitle: 'Pending claims',
+    moderateTitle: 'Moderation queue',
+    pendingClubsHeading: 'Pending new clubs',
+    pendingClaimsHeading: 'Pending claims',
     noPendingClaims: 'No pending claims.',
+    noPendingClubs: 'No pending new clubs.',
+    noPendingItems: 'Nothing to moderate.',
     approveCta: 'Approve',
     rejectCta: 'Reject',
     listedContactLabel: (email: string) => `Listed contact: ${email}`,
+    submittedByLabel: (email: string) => `Submitted by ${email}`,
+    practiceLabel: 'Practice',
   },
 
   notFound: {

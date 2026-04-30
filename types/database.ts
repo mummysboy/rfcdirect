@@ -357,6 +357,7 @@ export type Database = {
             Returns: string
           }
       approve_claim: { Args: { p_claim_id: string }; Returns: undefined }
+      approve_club: { Args: { p_club_id: string }; Returns: undefined }
       clubs_within_radius: {
         Args: { lat: number; lng: number; radius_miles: number }
         Returns: {
@@ -530,6 +531,33 @@ export type Database = {
           club_status: string
         }[]
       }
+      list_pending_clubs_for_admin: {
+        Args: never
+        Returns: {
+          club_address_display: string
+          club_brand_color: string
+          club_category: string
+          club_contact_email: string
+          club_contact_phone: string
+          club_created_at: string
+          club_description: string
+          club_division: string
+          club_id: string
+          club_latitude: number
+          club_logo_url: string
+          club_longitude: number
+          club_name: string
+          club_practice_days: string[]
+          club_practice_times: string
+          club_slug: string
+          club_social_facebook: string
+          club_social_instagram: string
+          club_website_url: string
+          club_year_founded: number
+          submitter_email: string
+          submitter_user_id: string
+        }[]
+      }
       longtransactionsenabled: { Args: never; Returns: boolean }
       populate_geometry_columns:
         | { Args: { tbl_oid: unknown; use_typmod?: boolean }; Returns: number }
@@ -572,6 +600,7 @@ export type Database = {
       postgis_version: { Args: never; Returns: string }
       postgis_wagyu_version: { Args: never; Returns: string }
       reject_claim: { Args: { p_claim_id: string }; Returns: undefined }
+      reject_club: { Args: { p_club_id: string }; Returns: undefined }
       st_3dclosestpoint: {
         Args: { geom1: unknown; geom2: unknown }
         Returns: unknown
