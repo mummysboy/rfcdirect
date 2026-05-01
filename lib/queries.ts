@@ -25,16 +25,17 @@ export async function listClubsWithinRadius(args: {
 
 // All approved clubs, with distances computed from `center` (or a continental
 // US fallback when no center is given). Uses the existing `clubs_within_radius`
-// RPC with a radius wide enough to cover everywhere — avoids a new migration
-// for a separate "all approved" RPC. Capped at the RPC's limit of 200, fine
-// for current scale.
+// RPC with a radius wider than Earth's max antipodal distance (~12,450 mi)
+// so any approved club shows up regardless of the center — avoids a new
+// migration for a separate "all approved" RPC. Capped at the RPC's limit of
+// 200, fine for current scale.
 export async function listAllClubs(
   center?: { lat: number; lng: number },
 ): Promise<ClubWithDistance[]> {
   return listClubsWithinRadius({
     lat: center?.lat ?? 39,
     lng: center?.lng ?? -98,
-    radiusMiles: 4000,
+    radiusMiles: 13000,
   });
 }
 
