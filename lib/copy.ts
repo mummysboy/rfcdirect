@@ -40,6 +40,15 @@ export const copy = {
     emptyNoClubsInView: 'No clubs in this area. Pan or zoom out.',
     findingClubs: 'Finding clubs near you…',
     loadError: "Couldn't load clubs. Pull to retry.",
+    filtersChipLabel: (location: string, radius: number, count: number) =>
+      `${location} · ${radius} mi · ${count === 1 ? '1 club' : `${count} clubs`}`,
+    filtersChipSearching: (location: string, radius: number) =>
+      `${location} · ${radius} mi · Searching…`,
+    filtersChipA11y: (location: string, radius: number, count: number) =>
+      `Filters: ${location}, ${radius} miles, ${
+        count === 1 ? '1 club' : `${count} clubs`
+      }. Activate to edit.`,
+    filtersChipEdit: 'Edit',
   },
 
   club: {

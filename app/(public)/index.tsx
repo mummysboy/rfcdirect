@@ -1,9 +1,25 @@
 import { Link } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Text, View } from 'react-native';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactElement,
+} from 'react';
+import {
+  ActivityIndicator,
+  Text,
+  View,
+  useWindowDimensions,
+  type LayoutChangeEvent,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+} from 'react-native';
 
-import { ClubList } from '@/components/clubs/ClubList';
+import { ClubList, type ClubListHandle } from '@/components/clubs/ClubList';
 import { Map, type MapBounds } from '@/components/map';
+import { CompactFiltersBar } from '@/components/ui/CompactFiltersBar';
 import { Container } from '@/components/ui/Container';
 import { LocationSearch } from '@/components/ui/LocationSearch';
 import { RadiusPicker } from '@/components/ui/RadiusPicker';
@@ -19,8 +35,13 @@ import {
 type Center = { lng: number; lat: number; label: string };
 
 const MAP_HEIGHT = 280;
+const MOBILE_BREAKPOINT = 768;
+const SCROLL_THRESHOLD = 24;
 
 export default function HomeScreen() {
+  const { width } = useWindowDimensions();
+  const isMobile = width > 0 && width < MOBILE_BREAKPOINT;
+
   const [center, setCenter] = useState<Center | null>(null);
   const [radius, setRadius] = useState<number>(RADIUS_MILES.default);
   const [clubs, setClubs] = useState<ClubWithDistance[] | null>(null);
@@ -29,6 +50,17 @@ export default function HomeScreen() {
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
   const [bounceTick, setBounceTick] = useState(0);
   const [bounds, setBounds] = useState<MapBounds | null>(null);
+
+  const [chromeHeight, setChromeHeight] = useState(0);
+  const [showCompactBar, setShowCompactBar] = useState(false);
+  // Tracked outside React state because every scroll tick mutates it; only
+  // crossing the show/hide threshold should re-render.
+  const scrollState = useRef({
+    lastY: 0,
+    direction: null as 'up' | 'down' | null,
+    delta: 0,
+  });
+  const listHandleRef = useRef<ClubListHandle>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -70,6 +102,11 @@ export default function HomeScreen() {
     };
   }, [center, radius]);
 
+  // Crossing into desktop width while the bar is up would leave it stranded.
+  useEffect(() => {
+    if (!isMobile) setShowCompactBar(false);
+  }, [isMobile]);
+
   const onLocationSelect = (r: GeocodeResult) =>
     setCenter({ lng: r.longitude, lat: r.latitude, label: r.placeName });
 
@@ -106,8 +143,56 @@ export default function HomeScreen() {
     );
   }, [sourceClubs, bounds]);
 
-  return (
-    <Container edges={['top']}>
+  const onChromeLayout = useCallback((e: LayoutChangeEvent) => {
+    setChromeHeight(e.nativeEvent.layout.height);
+  }, []);
+
+  const onScroll = useCallback(
+    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      if (!isMobile || chromeHeight === 0) return;
+      const y = e.nativeEvent.contentOffset.y;
+      const dy = y - scrollState.current.lastY;
+      if (Math.abs(dy) < 1) return;
+
+      const direction: 'up' | 'down' = dy > 0 ? 'down' : 'up';
+      if (direction !== scrollState.current.direction) {
+        scrollState.current.delta = 0;
+        scrollState.current.direction = direction;
+      }
+      scrollState.current.delta += Math.abs(dy);
+      scrollState.current.lastY = y;
+
+      // Chrome is still on screen — keep the bar hidden, the chrome itself
+      // already shows everything the bar would.
+      if (y < chromeHeight) {
+        if (showCompactBar) setShowCompactBar(false);
+        return;
+      }
+
+      if (
+        direction === 'up' &&
+        !showCompactBar &&
+        scrollState.current.delta >= SCROLL_THRESHOLD
+      ) {
+        setShowCompactBar(true);
+      } else if (
+        direction === 'down' &&
+        showCompactBar &&
+        scrollState.current.delta >= SCROLL_THRESHOLD
+      ) {
+        setShowCompactBar(false);
+      }
+    },
+    [isMobile, chromeHeight, showCompactBar],
+  );
+
+  const onCompactBarPress = useCallback(() => {
+    listHandleRef.current?.scrollToTop();
+    setShowCompactBar(false);
+  }, []);
+
+  const chrome = (
+    <>
       <View className="flex-row items-center justify-between border-b border-border px-4 py-3">
         <Text className="font-serif text-h1 text-fg">{copy.brand.wordmark}</Text>
         <Link href="/sign-in" className="text-body text-accent">
@@ -138,29 +223,81 @@ export default function HomeScreen() {
           </Text>
         </View>
       ) : null}
+    </>
+  );
 
-      {center && error ? (
-        <View className="flex-1 items-center justify-center px-6">
-          <Text className="text-body text-fg">{copy.home.loadError}</Text>
-          <Text className="mt-2 text-meta text-muted">{error}</Text>
-        </View>
-      ) : sourceClubs === null ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator />
-        </View>
-      ) : center && clubs !== null && clubs.length === 0 ? (
-        <View className="flex-1 items-center justify-center px-6">
-          <Text className="text-center text-body text-fg">
-            {copy.home.emptyNoResults(radius, center.label)}
-          </Text>
-        </View>
-      ) : clubsInView && clubsInView.length === 0 ? (
-        <View className="flex-1 items-center justify-center px-6">
-          <Text className="text-center text-body text-fg">
-            {copy.home.emptyNoClubsInView}
-          </Text>
-        </View>
-      ) : (
+  let belowChrome: ReactElement | null = null;
+  if (center && error) {
+    belowChrome = (
+      <View className="flex-1 items-center justify-center px-6">
+        <Text className="text-body text-fg">{copy.home.loadError}</Text>
+        <Text className="mt-2 text-meta text-muted">{error}</Text>
+      </View>
+    );
+  } else if (sourceClubs === null) {
+    belowChrome = (
+      <View className="flex-1 items-center justify-center">
+        <ActivityIndicator />
+      </View>
+    );
+  } else if (center && clubs !== null && clubs.length === 0) {
+    belowChrome = (
+      <View className="flex-1 items-center justify-center px-6">
+        <Text className="text-center text-body text-fg">
+          {copy.home.emptyNoResults(radius, center.label)}
+        </Text>
+      </View>
+    );
+  } else if (clubsInView && clubsInView.length === 0) {
+    belowChrome = (
+      <View className="flex-1 items-center justify-center px-6">
+        <Text className="text-center text-body text-fg">
+          {copy.home.emptyNoClubsInView}
+        </Text>
+      </View>
+    );
+  }
+
+  if (isMobile) {
+    return (
+      <Container edges={['top']}>
+        {showCompactBar && center ? (
+          <View
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              zIndex: 70,
+            }}
+          >
+            <CompactFiltersBar
+              location={center.label}
+              radius={radius}
+              count={clubsInView?.length ?? null}
+              onPress={onCompactBarPress}
+            />
+          </View>
+        ) : null}
+        <ClubList
+          ref={listHandleRef}
+          clubs={belowChrome ? [] : clubsInView ?? []}
+          selectedSlug={selectedSlug}
+          onSelect={onSelectFromList}
+          hideDistance={!center}
+          header={<View onLayout={onChromeLayout}>{chrome}</View>}
+          empty={belowChrome}
+          onScroll={onScroll}
+          contentContainerStyle={{ flexGrow: 1 }}
+        />
+      </Container>
+    );
+  }
+
+  return (
+    <Container edges={['top']}>
+      {chrome}
+      {belowChrome ?? (
         <ClubList
           clubs={clubsInView ?? []}
           selectedSlug={selectedSlug}

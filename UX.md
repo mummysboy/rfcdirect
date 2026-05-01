@@ -55,7 +55,6 @@ Lean dense. List rows are 64px tall (logo 40px + two lines of text). Default rad
 
 - Transitions: 180ms ease-out on color/opacity, 240ms ease-in-out on layout.
 - Map pin tap: scale 1.0 → 1.15 → 1.0 over 320ms.
-- Bottom sheet drag: native physics on iOS/Android, CSS transform on web.
 - Reduced-motion: respect `prefers-reduced-motion`, replace transitions with instant changes.
 
 No parallax, no decorative animations, no scroll-jacking.
@@ -74,16 +73,20 @@ Dark mode is deferred. The cream-paper aesthetic doesn't translate to dark clean
 
 **Purpose:** seeker enters location + radius, sees results.
 
-**Layout (mobile-first):**
+**Layout (mobile, <768px):**
 - Top bar (56px): wordmark left, "Manage a club" link right
-- Search row (sticky, 64px): location input (Mapbox autocomplete) + radius pill ("25 mi", tap to expand slider)
-- Map (flex-grow, min 40% of viewport): pins for results, dashed radius ring around search center
-- Bottom sheet (peek 25% / expanded 75%): grab handle, "N clubs in range" eyebrow, scrollable list of result rows
+- Location input (Mapbox autocomplete; dropdown of up to 5 results)
+- Radius pills row (5/10/25/50/100 mi)
+- Map (fixed 280px): pins for results, dashed radius ring around search center
+- "N clubs in view" eyebrow
+- Club list: result rows
+
+The whole page is a single vertical scroll surface; the chrome flows above the list and scrolls with it. See §Mobile collapsing chrome under Interaction patterns.
 
 **Layout (web ≥1024px):**
 - Top bar (64px): wordmark + nav
 - Two-column body: left = search controls + scrollable list (~400px wide), right = map (fills remainder)
-- No bottom sheet — list is always visible
+- List is always visible — no collapsing chrome on desktop
 
 **Result row:**
 - 40px logo (or initial-monogram fallback)
@@ -159,7 +162,7 @@ Every screen handles five states. Specifying upfront so they don't get skipped.
 - Profile: header skeleton + 3 line skeletons; render real content as it arrives, don't wait for everything
 
 ### Empty
-- **No location entered yet (home):** map shows continental US, sheet shows "Enter a location to find rugby clubs near you" with a friendly arrow pointing to the search input
+- **No location entered yet (home):** map shows continental US, the list area shows "Enter a location to find rugby clubs near you" with a friendly arrow pointing to the search input
 - **Location entered, zero results in radius:** "No clubs found within {radius} miles of {location}. Try expanding your search." with a button to bump radius +25 mi
 - **Admin dashboard, no claims:** see screen 4 above
 
@@ -185,11 +188,11 @@ Auth-gated routes that hit unauthenticated users redirect to `/admin/sign-in?red
 - Selecting a result fills the input, drops a center marker on the map, runs the radius query
 - Clearing the input shows the empty state, doesn't keep stale results
 
-### Radius slider
-- Range 5–100 mi, step 5
-- On mobile: tap the radius pill in the search row → bottom sheet opens with slider + live "{N} clubs would be in range" preview that updates as the slider moves
-- On web: inline slider next to location input
-- Releasing the slider commits the new radius (avoids 20 queries while dragging)
+### Radius selector
+- Five preset values rendered as a horizontal pill row: 5 / 10 / 25 / 50 / 100 mi
+- Selected pill is solid foreground; unselected pills are surface with border
+- Tap commits immediately and re-runs the radius query
+- A finer-grained slider is a future consideration; the preset pills cover the common cases without committing to a sheet or slider UI for v1
 
 ### Map ↔ list sync
 - Tapping a pin on the map highlights and scrolls-to the corresponding list row
@@ -204,18 +207,25 @@ Auth-gated routes that hit unauthenticated users redirect to `/admin/sign-in?red
 5. (Manual approval happens out-of-band)
 6. Once approved, profile shows "Edit profile" button to that admin
 
-### Bottom sheet (mobile)
-- Three snap points: peek (25%), half (50%), expanded (75%)
-- Drag handle visible always; tapping the handle cycles up
-- Map remains interactive when sheet is at peek; reduced interactivity at half; sheet wins gestures at expanded
+### Mobile collapsing chrome
+On viewports `<768px`, the home screen is a single scroll surface; the chrome (top bar, location input, radius pills, map, eyebrow) flows above the list and scrolls with it. Two-stage reveal:
+
+- **Scroll down** — chrome scrolls off naturally; the list takes the viewport.
+- **Upward delta ≥24px** while chrome is offscreen — a compact sticky bar appears at the top: `<location> · <radius> · <count> clubs` with a trailing Edit affordance. Bar is overlaid (no layout shift in the list).
+- **Tap the bar** — scrolls back to top of the list, which re-expands the full chrome.
+- **Reach scroll-top of the list** — full chrome re-expands automatically.
+
+The bar is suppressed when no location is selected, when the list is empty/loading/errored, and on `width ≥ 768`.
+
+Why not a draggable bottom sheet: the chrome contains controls users only need at session start (location + radius). Once chosen, those controls can disappear and re-summon as a thin chip — no drag affordance, no third-party sheet library on web, no nested-scroll gesture conflicts. Earlier drafts of this doc described a 25/50/75% sheet pattern — superseded.
 
 ## Responsive behavior
 
 | Breakpoint | Layout |
 |---|---|
-| <640px (phone) | Map + bottom sheet, single column everywhere else |
-| 640–1024px (tablet) | Map full-width on top, list below; profile uses single column with wider margins |
-| ≥1024px (desktop) | Two-column home (list 400px / map fluid); profile centered max-width 720px |
+| <768px (mobile) | Home: single scroll surface with collapsing chrome (see §Mobile collapsing chrome). Other screens: single column. |
+| 768–1024px (tablet) | Stacked map + list (chrome above, list scrolls below in its own region); profile single column with wider margins |
+| ≥1024px (desktop) | Two-column home (list 400px / map fluid); profile centered max-width 720px. *Two-column home is the target; current build is single-column.* |
 
 The same Expo codebase serves all three via responsive layout components — no separate web app.
 

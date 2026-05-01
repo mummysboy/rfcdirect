@@ -1,5 +1,17 @@
-import { useEffect, useRef } from 'react';
-import { FlatList } from 'react-native';
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  type ReactElement,
+} from 'react';
+import {
+  FlatList,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 
 import type { ClubWithDistance } from '@/lib/queries';
 
@@ -10,10 +22,39 @@ type Props = {
   selectedSlug?: string | null;
   onSelect?: (slug: string) => void;
   hideDistance?: boolean;
+  header?: ReactElement | null;
+  empty?: ReactElement | null;
+  onScroll?: (e: NativeSyntheticEvent<NativeScrollEvent>) => void;
+  contentContainerStyle?: StyleProp<ViewStyle>;
 };
 
-export function ClubList({ clubs, selectedSlug, onSelect, hideDistance }: Props) {
+export type ClubListHandle = {
+  scrollToTop: () => void;
+};
+
+export const ClubList = forwardRef<ClubListHandle, Props>(function ClubList(
+  {
+    clubs,
+    selectedSlug,
+    onSelect,
+    hideDistance,
+    header,
+    empty,
+    onScroll,
+    contentContainerStyle,
+  },
+  ref,
+) {
   const listRef = useRef<FlatList<ClubWithDistance>>(null);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      scrollToTop: () =>
+        listRef.current?.scrollToOffset({ offset: 0, animated: true }),
+    }),
+    [],
+  );
 
   useEffect(() => {
     if (!selectedSlug) return;
@@ -40,6 +81,11 @@ export function ClubList({ clubs, selectedSlug, onSelect, hideDistance }: Props)
           onPress={onSelect}
         />
       )}
+      ListHeaderComponent={header}
+      ListEmptyComponent={empty}
+      onScroll={onScroll}
+      scrollEventThrottle={16}
+      contentContainerStyle={contentContainerStyle}
       onScrollToIndexFailed={({ index }) => {
         // Variable row heights mean FlatList may not have measured the target
         // yet on the first attempt — retry on the next tick.
@@ -53,4 +99,4 @@ export function ClubList({ clubs, selectedSlug, onSelect, hideDistance }: Props)
       }}
     />
   );
-}
+});
