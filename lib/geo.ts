@@ -48,6 +48,16 @@ export async function geocode(query: string): Promise<GeocodeResult[]> {
   return results;
 }
 
+/**
+ * Universal Google Maps "search" URL — opens the address in the Google Maps
+ * app on iOS/Android and the web map elsewhere. Address-query (rather than
+ * lat/lng) lands at the named place, which is what users expect when tapping
+ * a "Practice location" row.
+ */
+export function googleMapsUrlFor(address: string): string {
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+}
+
 /** Tiny debounce helper. Per UX.md, geocoding requests debounce 300ms. */
 export function debounce<Args extends unknown[]>(
   fn: (...args: Args) => void,

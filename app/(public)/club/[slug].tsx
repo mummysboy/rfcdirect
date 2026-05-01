@@ -16,6 +16,7 @@ import { Container } from '@/components/ui/Container';
 import { useSession } from '@/lib/auth';
 import { COLORS } from '@/lib/constants';
 import { categoryLabels, copy, divisionLabels } from '@/lib/copy';
+import { googleMapsUrlFor } from '@/lib/geo';
 import { formatPracticeDays, formatPracticeTimes } from '@/lib/practice';
 import { facebookUrl, instagramUrl, socialDisplay } from '@/lib/socials';
 import { type Club, getClubBySlug } from '@/lib/queries';
@@ -191,7 +192,9 @@ function ProfileContent({ club }: { club: Club }) {
           <View className="mt-3 gap-3">
             <DetailRow
               label={copy.club.fields.location}
-              value={club.address_display}
+              value={club.practice_location_label ?? club.address_display}
+              href={googleMapsUrlFor(club.address_display)}
+              linkColor={brand}
             />
             {club.practice_days && club.practice_days.length > 0 ? (
               <DetailRow

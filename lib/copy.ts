@@ -82,6 +82,7 @@ export const copy = {
     fields: {
       name: 'Name',
       location: 'Practice location',
+      practiceLocationLabel: 'Practice location label',
       founded: 'Founded',
       division: 'Division',
       category: 'Category',

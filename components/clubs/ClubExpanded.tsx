@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Linking, Pressable, Text, View } from 'react-native';
 
 import { categoryLabels, copy, divisionLabels } from '@/lib/copy';
+import { googleMapsUrlFor } from '@/lib/geo';
 import { formatPracticeDays, formatPracticeTimes } from '@/lib/practice';
 import { facebookUrl, instagramUrl, socialDisplay } from '@/lib/socials';
 import { type ClubWithDistance, getClubBySlug } from '@/lib/queries';
@@ -10,13 +11,17 @@ type Props = {
   /**
    * Pre-loaded list-row data — most fields render immediately from this so
    * the dropdown opens with content instead of a spinner. practice_days /
-   * practice_times aren't in the RPC return; they're fetched in the
-   * background and slotted in when ready.
+   * practice_times / practice_location_label aren't in the RPC return; they're
+   * fetched in the background and slotted in when ready.
    */
   club: ClubWithDistance;
 };
 
-type Practice = { days: string[]; times: string | null };
+type Practice = {
+  days: string[];
+  times: string | null;
+  locationLabel: string | null;
+};
 
 export function ClubExpanded({ club }: Props) {
   const [practice, setPractice] = useState<Practice | null>(null);
@@ -30,6 +35,7 @@ export function ClubExpanded({ club }: Props) {
         setPractice({
           days: full.practice_days ?? [],
           times: full.practice_times ?? null,
+          locationLabel: full.practice_location_label ?? null,
         });
       })
       .catch(() => {
@@ -40,6 +46,8 @@ export function ClubExpanded({ club }: Props) {
     };
   }, [club.slug]);
 
+  const locationDisplay = practice?.locationLabel ?? club.address_display;
+
   return (
     <View className="gap-3 border-b border-border bg-bg px-4 py-4">
       {club.description ? (
@@ -47,7 +55,11 @@ export function ClubExpanded({ club }: Props) {
       ) : null}
 
       <View className="gap-2">
-        <DetailRow label={copy.club.fields.location} value={club.address_display} />
+        <DetailRow
+          label={copy.club.fields.location}
+          value={locationDisplay}
+          href={googleMapsUrlFor(club.address_display)}
+        />
         {practice && practice.days.length > 0 ? (
           <DetailRow
             label={copy.club.fields.practiceDays}

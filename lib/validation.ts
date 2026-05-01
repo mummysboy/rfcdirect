@@ -42,6 +42,7 @@ export const clubFormSchema = z.object({
   division: z.enum(DIVISIONS),
   category: z.enum(CATEGORIES),
   address_display: z.string().min(2, copy.club.validation.addressRequired),
+  practice_location_label: z.string().nullable().optional(),
   // Form-only fields; the route mapper strips them and writes a PostGIS
   // POINT into `clubs.location`. Optional so the edit form can submit
   // without re-picking an address — the mapper omits `location` from the

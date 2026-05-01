@@ -59,6 +59,7 @@ export default function EditClubScreen() {
     division: club.division as Division,
     category: club.category as Category,
     address_display: club.address_display,
+    practice_location_label: club.practice_location_label,
     // lat/lng are not prefilled — `getClubById` doesn't expose them. The form's
     // mapper only includes `location` in the patch when the user re-picks an
     // address, so unchanged-address edits leave the existing point alone.
@@ -92,6 +93,7 @@ export default function EditClubScreen() {
       brand_color: values.brand_color ?? null,
       practice_days: values.practice_days,
       practice_times: values.practice_times ?? null,
+      practice_location_label: values.practice_location_label ?? null,
       logo_url: logoUrl,
     };
     if (values.latitude != null && values.longitude != null) {

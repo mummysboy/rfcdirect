@@ -52,6 +52,7 @@ const NEW_DEFAULTS: ClubFormInput = {
   division: DEFAULT_DIVISION,
   category: DEFAULT_CATEGORY,
   address_display: '',
+  practice_location_label: null,
   latitude: null,
   longitude: null,
   website_url: null,
@@ -244,19 +245,41 @@ export function ClubForm(props: ClubFormProps) {
         </FieldRow>
       </View>
 
-      <View>
-        <Text className="mb-2 text-eyebrow uppercase tracking-eyebrow text-muted">
-          {copy.club.fields.location}
-        </Text>
-        <LocationSearch
-          initialValue={initialAddress}
-          onSelect={onAddressSelect}
-        />
-        {errors.address_display ? (
-          <Text className="mt-1 text-meta text-accent">
-            {errors.address_display.message}
+      <View className="gap-3">
+        <View>
+          <Text className="mb-2 text-eyebrow uppercase tracking-eyebrow text-muted">
+            {copy.club.fields.location}
           </Text>
-        ) : null}
+          <LocationSearch
+            initialValue={initialAddress}
+            onSelect={onAddressSelect}
+          />
+          {errors.address_display ? (
+            <Text className="mt-1 text-meta text-accent">
+              {errors.address_display.message}
+            </Text>
+          ) : null}
+        </View>
+
+        <FieldRow
+          label={copy.club.fields.practiceLocationLabel}
+          error={errors.practice_location_label?.message}
+        >
+          <Controller
+            control={control}
+            name="practice_location_label"
+            render={({ field: { value, onChange, onBlur } }) => (
+              <TextInput
+                value={value ?? ''}
+                onChangeText={(t) => onChange(t === '' ? null : t)}
+                onBlur={onBlur}
+                editable={!isSubmitting}
+                placeholderTextColor={COLORS.muted}
+                className="rounded border border-border bg-surface px-3 py-3 text-body text-fg"
+              />
+            )}
+          />
+        </FieldRow>
       </View>
 
       <View className="gap-3">

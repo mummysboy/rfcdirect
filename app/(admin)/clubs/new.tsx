@@ -39,6 +39,7 @@ export default function NewClubScreen() {
         brand_color: values.brand_color ?? null,
         practice_days: values.practice_days,
         practice_times: values.practice_times ?? null,
+        practice_location_label: values.practice_location_label ?? null,
         logo_url: null,
         claimed_by: session.user.id,
         status: STATUS.pending,

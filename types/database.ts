@@ -100,6 +100,7 @@ export type Database = {
           logo_url: string | null
           name: string
           practice_days: string[]
+          practice_location_label: string | null
           practice_times: string | null
           slug: string
           social_facebook: string | null
@@ -124,6 +125,7 @@ export type Database = {
           logo_url?: string | null
           name: string
           practice_days?: string[]
+          practice_location_label?: string | null
           practice_times?: string | null
           slug: string
           social_facebook?: string | null
@@ -148,6 +150,7 @@ export type Database = {
           logo_url?: string | null
           name?: string
           practice_days?: string[]
+          practice_location_label?: string | null
           practice_times?: string | null
           slug?: string
           social_facebook?: string | null
