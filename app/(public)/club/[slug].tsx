@@ -314,13 +314,13 @@ function ClubLogo({ club }: { club: Club }) {
       <Image
         source={club.logo_url}
         contentFit="cover"
-        style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: '#FFFFFF' }}
+        style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: '#FFFFFF' }}
         accessibilityLabel={`${club.name} logo`}
       />
     );
   }
   return (
-    <View className="h-14 w-14 items-center justify-center rounded-full bg-surface">
+    <View className="h-16 w-16 items-center justify-center rounded-full bg-surface">
       <Text className="font-serif text-display text-fg">
         {club.name.trim().charAt(0).toUpperCase() || '?'}
       </Text>

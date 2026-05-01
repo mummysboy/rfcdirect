@@ -112,11 +112,11 @@ export function ClubListItem({
           <Image
             source={club.logo_url}
             contentFit="cover"
-            style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#FFFFFF' }}
+            style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: '#FFFFFF' }}
             accessibilityLabel={`${club.name} logo`}
           />
         ) : (
-          <View className="h-10 w-10 items-center justify-center rounded-full bg-bg">
+          <View className="h-12 w-12 items-center justify-center rounded-full bg-bg">
             <Text className="font-serif text-h2 text-fg">{initial(club.name)}</Text>
           </View>
         )}
