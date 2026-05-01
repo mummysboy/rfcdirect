@@ -21,6 +21,7 @@ import {
 } from '@/lib/constants';
 import { categoryLabels, copy, dayLabels, divisionLabels } from '@/lib/copy';
 import type { GeocodeResult } from '@/lib/geo';
+import { asYouTypePhone, parsePhoneToE164 } from '@/lib/phone';
 import { clubFormSchema, type ClubFormInput } from '@/lib/validation';
 
 import { BrandColorPicker } from './BrandColorPicker';
@@ -102,8 +103,14 @@ export function ClubForm(props: ClubFormProps) {
 
   async function onValidSubmit(values: ClubFormInput) {
     setBanner(null);
+    const normalized: ClubFormInput = {
+      ...values,
+      contact_phone: values.contact_phone
+        ? parsePhoneToE164(values.contact_phone)
+        : values.contact_phone ?? null,
+    };
     try {
-      await props.onSubmit(values, logoUrl);
+      await props.onSubmit(normalized, logoUrl);
       setSavedAt(Date.now());
     } catch (e) {
       setBanner((e as Error).message || copy.errors.network);
@@ -449,6 +456,7 @@ export function ClubForm(props: ClubFormProps) {
         <FieldRow
           label={copy.club.fields.phone}
           error={errors.contact_phone?.message}
+          hint={copy.club.hints.phone}
         >
           <Controller
             control={control}
@@ -456,9 +464,12 @@ export function ClubForm(props: ClubFormProps) {
             render={({ field: { value, onChange, onBlur } }) => (
               <TextInput
                 value={value ?? ''}
-                onChangeText={(t) => onChange(t === '' ? null : t)}
+                onChangeText={(t) =>
+                  onChange(t === '' ? null : asYouTypePhone(t))
+                }
                 onBlur={onBlur}
                 keyboardType="phone-pad"
+                placeholder="(415) 572-4853"
                 editable={!isSubmitting}
                 placeholderTextColor={COLORS.muted}
                 className="rounded border border-border bg-surface px-3 py-3 text-body text-fg"
@@ -490,10 +501,12 @@ export function ClubForm(props: ClubFormProps) {
 function FieldRow({
   label,
   error,
+  hint,
   children,
 }: {
   label: string;
   error?: string;
+  hint?: string;
   children: ReactNode;
 }) {
   return (
@@ -502,6 +515,8 @@ function FieldRow({
       {children}
       {error ? (
         <Text className="mt-1 text-meta text-accent">{error}</Text>
+      ) : hint ? (
+        <Text className="mt-1 text-meta text-muted">{hint}</Text>
       ) : null}
     </View>
   );

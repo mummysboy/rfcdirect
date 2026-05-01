@@ -1,3 +1,4 @@
+import { FontAwesome } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { Link, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -17,6 +18,7 @@ import { useSession } from '@/lib/auth';
 import { COLORS } from '@/lib/constants';
 import { categoryLabels, copy, divisionLabels } from '@/lib/copy';
 import { googleMapsUrlFor } from '@/lib/geo';
+import { formatPhone, whatsappUrl } from '@/lib/phone';
 import { formatPracticeDays, formatPracticeTimes } from '@/lib/practice';
 import { facebookUrl, instagramUrl, socialDisplay } from '@/lib/socials';
 import { type Club, getClubBySlug } from '@/lib/queries';
@@ -245,12 +247,7 @@ function ProfileContent({ club }: { club: Club }) {
               />
             ) : null}
             {club.contact_phone ? (
-              <DetailRow
-                label={copy.club.fields.phone}
-                value={club.contact_phone}
-                href={`tel:${club.contact_phone}`}
-                linkColor={brand}
-              />
+              <PhoneRow phone={club.contact_phone} linkColor={brand} />
             ) : null}
           </View>
         </View>
@@ -382,6 +379,47 @@ function DetailRow({ label, value, href, linkColor }: DetailRowProps) {
         {label}
       </Text>
       <View className="flex-1 items-end">{valueNode}</View>
+    </View>
+  );
+}
+
+function PhoneRow({
+  phone,
+  linkColor,
+}: {
+  phone: string;
+  linkColor: string;
+}) {
+  const wa = whatsappUrl(phone);
+  return (
+    <View className="flex-row items-center justify-between gap-4">
+      <Text className="text-eyebrow uppercase tracking-eyebrow text-muted">
+        {copy.club.fields.phone}
+      </Text>
+      <View className="flex-row items-center gap-3">
+        <Pressable
+          onPress={() => Linking.openURL(`tel:${phone}`).catch(() => {})}
+          accessibilityRole="link"
+        >
+          <Text
+            className="text-body"
+            style={{ color: linkColor }}
+            numberOfLines={1}
+          >
+            {formatPhone(phone)}
+          </Text>
+        </Pressable>
+        {wa ? (
+          <Pressable
+            onPress={() => Linking.openURL(wa).catch(() => {})}
+            accessibilityRole="link"
+            accessibilityLabel="WhatsApp"
+            hitSlop={8}
+          >
+            <FontAwesome name="whatsapp" size={22} color={linkColor} />
+          </Pressable>
+        ) : null}
+      </View>
     </View>
   );
 }

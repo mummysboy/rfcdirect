@@ -5,6 +5,7 @@ import { Linking, Pressable, Text, View } from 'react-native';
 import { COLORS } from '@/lib/constants';
 import { copy } from '@/lib/copy';
 import { googleMapsUrlFor } from '@/lib/geo';
+import { formatPhone, whatsappUrl } from '@/lib/phone';
 import { formatPracticeDays, formatPracticeTimes } from '@/lib/practice';
 import { facebookUrl, instagramUrl } from '@/lib/socials';
 import { type ClubWithDistance, getClubBySlug } from '@/lib/queries';
@@ -89,11 +90,7 @@ export function ClubExpanded({ club }: Props) {
           />
         ) : null}
         {club.contact_phone ? (
-          <DetailRow
-            label={copy.club.fields.phone}
-            value={club.contact_phone}
-            href={`tel:${club.contact_phone}`}
-          />
+          <PhoneRow phone={club.contact_phone} iconColor={COLORS.accent} />
         ) : null}
         {club.social_instagram || club.social_facebook ? (
           <View className="flex-row items-center justify-between gap-4">
@@ -172,6 +169,43 @@ function DetailRow({ label, value, href }: DetailRowProps) {
         {label}
       </Text>
       <View className="flex-1 items-end">{valueNode}</View>
+    </View>
+  );
+}
+
+function PhoneRow({
+  phone,
+  iconColor,
+}: {
+  phone: string;
+  iconColor: string;
+}) {
+  const wa = whatsappUrl(phone);
+  return (
+    <View className="flex-row items-center justify-between gap-4">
+      <Text className="text-eyebrow uppercase tracking-eyebrow text-muted">
+        {copy.club.fields.phone}
+      </Text>
+      <View className="flex-row items-center gap-3">
+        <Pressable
+          onPress={() => Linking.openURL(`tel:${phone}`).catch(() => {})}
+          accessibilityRole="link"
+        >
+          <Text className="text-body" style={{ color: iconColor }} numberOfLines={1}>
+            {formatPhone(phone)}
+          </Text>
+        </Pressable>
+        {wa ? (
+          <Pressable
+            onPress={() => Linking.openURL(wa).catch(() => {})}
+            accessibilityRole="link"
+            accessibilityLabel="WhatsApp"
+            hitSlop={8}
+          >
+            <FontAwesome name="whatsapp" size={22} color={iconColor} />
+          </Pressable>
+        ) : null}
+      </View>
     </View>
   );
 }

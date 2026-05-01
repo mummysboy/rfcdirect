@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { CATEGORIES, DAYS_OF_WEEK, DIVISIONS } from './constants';
 import { copy } from './copy';
+import { parsePhoneToE164 } from './phone';
 
 /** Hex color #RRGGBB. Matches the DB CHECK constraint. */
 const hexColor = z
@@ -53,7 +54,17 @@ export const clubFormSchema = z.object({
   social_instagram: z.string().nullable().optional(),
   social_facebook: z.string().nullable().optional(),
   contact_email: z.email().nullable().optional(),
-  contact_phone: z.string().nullable().optional(),
+  // Validates the user's free-form phone string is parseable. The ClubForm
+  // submit handler converts to E.164 before writing — keeping the transform
+  // out of the schema preserves RHF's resolver type inference.
+  contact_phone: z
+    .string()
+    .nullable()
+    .optional()
+    .refine(
+      (value) => value == null || value === '' || parsePhoneToE164(value) !== null,
+      { message: copy.club.validation.phoneInvalid },
+    ),
   brand_color: hexColor.nullable().optional(),
   practice_days: z.array(z.enum(DAYS_OF_WEEK)),
   practice_times: z.string().nullable().optional(),

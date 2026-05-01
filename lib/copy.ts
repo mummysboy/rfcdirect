@@ -93,12 +93,17 @@ export const copy = {
       practiceTimes: 'Practice times',
       socialMedia: 'Social media',
     },
+    hints: {
+      phone: 'Non-US numbers need a country code (e.g. +44 20 …).',
+    },
     validation: {
       nameRequired: 'Name is required',
       descriptionTooShort:
         'Description should be at least a sentence or two',
       addressRequired: 'Address is required',
       hexInvalid: 'Use a hex color like #B5161E',
+      phoneInvalid:
+        'Enter a valid phone number — non-US numbers need a country code (e.g. +44 …)',
     },
   },
 
