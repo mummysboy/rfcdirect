@@ -1,10 +1,12 @@
+import { FontAwesome } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import { Linking, Pressable, Text, View } from 'react-native';
 
-import { categoryLabels, copy, divisionLabels } from '@/lib/copy';
+import { COLORS } from '@/lib/constants';
+import { copy } from '@/lib/copy';
 import { googleMapsUrlFor } from '@/lib/geo';
 import { formatPracticeDays, formatPracticeTimes } from '@/lib/practice';
-import { facebookUrl, instagramUrl, socialDisplay } from '@/lib/socials';
+import { facebookUrl, instagramUrl } from '@/lib/socials';
 import { type ClubWithDistance, getClubBySlug } from '@/lib/queries';
 
 type Props = {
@@ -72,26 +74,6 @@ export function ClubExpanded({ club }: Props) {
             value={formatPracticeTimes(practice.times)}
           />
         ) : null}
-        {club.year_founded ? (
-          <DetailRow
-            label={copy.club.fields.founded}
-            value={String(club.year_founded)}
-          />
-        ) : null}
-        <DetailRow
-          label={copy.club.fields.division}
-          value={
-            divisionLabels[club.division as keyof typeof divisionLabels] ??
-            club.division
-          }
-        />
-        <DetailRow
-          label={copy.club.fields.category}
-          value={
-            categoryLabels[club.category as keyof typeof categoryLabels] ??
-            club.category
-          }
-        />
         {club.website_url ? (
           <DetailRow
             label={copy.club.fields.website}
@@ -113,19 +95,50 @@ export function ClubExpanded({ club }: Props) {
             href={`tel:${club.contact_phone}`}
           />
         ) : null}
-        {club.social_instagram ? (
-          <DetailRow
-            label="Instagram"
-            value={socialDisplay(club.social_instagram)}
-            href={instagramUrl(club.social_instagram)}
-          />
-        ) : null}
-        {club.social_facebook ? (
-          <DetailRow
-            label="Facebook"
-            value={socialDisplay(club.social_facebook)}
-            href={facebookUrl(club.social_facebook)}
-          />
+        {club.social_instagram || club.social_facebook ? (
+          <View className="flex-row items-center justify-between gap-4">
+            <Text className="text-eyebrow uppercase tracking-eyebrow text-muted">
+              {copy.club.fields.socialMedia}
+            </Text>
+            <View className="flex-row items-center gap-4">
+              {club.social_instagram ? (
+                <Pressable
+                  onPress={() =>
+                    Linking.openURL(
+                      instagramUrl(club.social_instagram!),
+                    ).catch(() => {})
+                  }
+                  accessibilityRole="link"
+                  accessibilityLabel="Instagram"
+                  hitSlop={8}
+                >
+                  <FontAwesome
+                    name="instagram"
+                    size={22}
+                    color={COLORS.accent}
+                  />
+                </Pressable>
+              ) : null}
+              {club.social_facebook ? (
+                <Pressable
+                  onPress={() =>
+                    Linking.openURL(
+                      facebookUrl(club.social_facebook!),
+                    ).catch(() => {})
+                  }
+                  accessibilityRole="link"
+                  accessibilityLabel="Facebook"
+                  hitSlop={8}
+                >
+                  <FontAwesome
+                    name="facebook"
+                    size={22}
+                    color={COLORS.accent}
+                  />
+                </Pressable>
+              ) : null}
+            </View>
+          </View>
         ) : null}
       </View>
     </View>

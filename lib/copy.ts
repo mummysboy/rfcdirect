@@ -91,6 +91,7 @@ export const copy = {
       phone: 'Phone',
       practiceDays: 'Practice days',
       practiceTimes: 'Practice times',
+      socialMedia: 'Social media',
     },
     validation: {
       nameRequired: 'Name is required',
