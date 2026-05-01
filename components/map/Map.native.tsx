@@ -17,6 +17,7 @@ type Props = {
   bounceTick?: number;
   onPinSelect?: (slug: string) => void;
   onBoundsChange?: (bounds: MapBounds) => void;
+  onLocate?: (loc: { lng: number; lat: number }) => void;
 };
 
 // Native map is not yet wired up — `@rnmapbox/maps` is in deps but the

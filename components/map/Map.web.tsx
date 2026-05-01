@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
 
 import { COLORS } from '@/lib/constants';
+import { copy } from '@/lib/copy';
 import type { ClubWithDistance } from '@/lib/queries';
 
 type MapboxModule = typeof import('mapbox-gl');
@@ -26,6 +27,7 @@ type Props = {
   bounceTick?: number;
   onPinSelect?: (slug: string) => void;
   onBoundsChange?: (bounds: MapBounds) => void;
+  onLocate?: (loc: { lng: number; lat: number }) => void;
 };
 
 // Continental US bounding box (SW, NE) — used when no location is selected
@@ -45,6 +47,7 @@ export function Map({
   bounceTick,
   onPinSelect,
   onBoundsChange,
+  onLocate,
 }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapboxMap | null>(null);
@@ -61,6 +64,18 @@ export function Map({
 
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [locating, setLocating] = useState(false);
+  const [locateError, setLocateError] = useState<string | null>(null);
+
+  // Tracks the intro spin so a center/radius change can pre-empt it.
+  const introSpinRunningRef = useRef(false);
+  // The constructor positions the camera at the spin's *start* (90° west of
+  // target); skip the first center/radius sync so its fitBounds doesn't
+  // pre-empt the easeTo that lands the user in place.
+  const hasInitialCenterSyncRef = useRef(false);
+
+  const onLocateRef = useRef(onLocate);
+  onLocateRef.current = onLocate;
 
   const token = process.env.EXPO_PUBLIC_MAPBOX_TOKEN;
 
@@ -73,16 +88,29 @@ export function Map({
         if (cancelled || !containerRef.current) return;
         mapboxRef.current = mod;
 
+        // Camera starts 20° east of the eventual target so the easeTo on
+        // load drifts the surface west-to-east into the final framing.
+        // Setting it in the constructor (rather than jumpTo'ing after load)
+        // avoids a single-frame flash at the target before the spin begins.
+        const reducedMotion =
+          typeof window !== 'undefined' &&
+          window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+        const introLngShift = reducedMotion ? 0 : 20;
+
         const map = new mod.Map({
           container: containerRef.current,
           style: 'mapbox://styles/mapbox/streets-v12',
+          projection: { name: 'globe' },
           ...(center
             ? {
-                center: [center.lng, center.lat],
+                center: [center.lng + introLngShift, center.lat],
                 zoom: zoomForRadius(radiusMiles),
               }
             : {
-                bounds: US_BOUNDS,
+                bounds:
+                  introLngShift === 0
+                    ? US_BOUNDS
+                    : shiftBoundsLng(US_BOUNDS, introLngShift),
                 fitBoundsOptions: { padding: US_FIT_PADDING },
               }),
           accessToken: token,
@@ -116,6 +144,33 @@ export function Map({
           });
           setReady(true);
           emitBounds();
+
+          if (introLngShift === 0) return;
+          // Intro flourish: a 20° west-to-east globe rotation gliding into
+          // place. Camera lng decreases by 20° (the constructor started us
+          // east); Mapbox normalizes to the shortest arc, so the surface
+          // drifts west-to-east across the screen.
+          introSpinRunningRef.current = true;
+          const easeOpts = {
+            duration: 2400,
+            essential: true,
+            easing: (t: number) => 1 - Math.pow(1 - t, 3),
+          } as const;
+          if (center) {
+            map.easeTo({
+              ...easeOpts,
+              center: [center.lng, center.lat],
+              zoom: zoomForRadius(radiusMiles),
+            });
+          } else {
+            map.fitBounds(US_BOUNDS, {
+              ...easeOpts,
+              padding: US_FIT_PADDING,
+            });
+          }
+          map.once('moveend', () => {
+            introSpinRunningRef.current = false;
+          });
         });
 
         const emitBounds = () => {
@@ -153,6 +208,23 @@ export function Map({
   useEffect(() => {
     const map = mapRef.current;
     if (!ready || !map) return;
+
+    const src = map.getSource('radius') as
+      | InstanceType<MapboxModule['GeoJSONSource']>
+      | undefined;
+    src?.setData(
+      center
+        ? circleFeature(center.lng, center.lat, radiusMiles)
+        : EMPTY_DATA,
+    );
+
+    if (!hasInitialCenterSyncRef.current) {
+      hasInitialCenterSyncRef.current = true;
+      return;
+    }
+
+    introSpinRunningRef.current = false;
+
     if (center) {
       map.flyTo({
         center: [center.lng, center.lat],
@@ -165,14 +237,6 @@ export function Map({
         essential: true,
       });
     }
-    const src = map.getSource('radius') as
-      | InstanceType<MapboxModule['GeoJSONSource']>
-      | undefined;
-    src?.setData(
-      center
-        ? circleFeature(center.lng, center.lat, radiusMiles)
-        : EMPTY_DATA,
-    );
   }, [center, radiusMiles, ready]);
 
   // Marker sync.
@@ -254,6 +318,37 @@ export function Map({
     );
   }, [bounceTick, selectedSlug, ready]);
 
+  const requestLocate = () => {
+    if (locating) return;
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      setLocateError(copy.errors.geolocationUnavailable);
+      return;
+    }
+    setLocating(true);
+    setLocateError(null);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLocating(false);
+        onLocateRef.current?.({
+          lng: pos.coords.longitude,
+          lat: pos.coords.latitude,
+        });
+      },
+      (err) => {
+        setLocating(false);
+        setLocateError(
+          err.code === err.PERMISSION_DENIED
+            ? copy.errors.geolocationDenied
+            : copy.errors.geolocationUnavailable,
+        );
+      },
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 },
+    );
+  };
+
+  const canLocate =
+    typeof navigator !== 'undefined' && !!navigator.geolocation;
+
   if (!token) {
     return (
       <View className="flex-1 items-center justify-center bg-bg px-4">
@@ -275,11 +370,106 @@ export function Map({
   }
 
   return (
-    <div
-      ref={containerRef}
-      style={{ width: '100%', height: '100%', minHeight: 200 }}
-    />
+    <div style={{ position: 'relative', width: '100%', height: '100%', minHeight: 200 }}>
+      <div
+        ref={containerRef}
+        style={{ width: '100%', height: '100%', minHeight: 200 }}
+      />
+      {canLocate && onLocate ? (
+        <div
+          style={{
+            position: 'absolute',
+            top: 12,
+            right: 12,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'flex-end',
+            gap: 6,
+            zIndex: 5,
+          }}
+        >
+          <button
+            type="button"
+            onClick={requestLocate}
+            disabled={locating}
+            aria-label={copy.home.useMyLocation}
+            title={copy.home.useMyLocation}
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 18,
+              border: `1px solid ${COLORS.border}`,
+              background: COLORS.surface,
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.18)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: locating ? 'progress' : 'pointer',
+              padding: 0,
+              opacity: locating ? 0.7 : 1,
+            }}
+          >
+            <LocateIcon spinning={locating} color={COLORS.fg} />
+          </button>
+          {locateError ? (
+            <span
+              role="alert"
+              style={{
+                background: COLORS.surface,
+                border: `1px solid ${COLORS.border}`,
+                color: COLORS.fg,
+                fontSize: 12,
+                lineHeight: '16px',
+                padding: '4px 8px',
+                borderRadius: 4,
+                maxWidth: 220,
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.12)',
+              }}
+            >
+              {locateError}
+            </span>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
   );
+}
+
+function LocateIcon({ spinning, color }: { spinning: boolean; color: string }) {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={
+        spinning
+          ? { animation: 'rfc-locate-spin 0.9s linear infinite' }
+          : undefined
+      }
+    >
+      <style>{`@keyframes rfc-locate-spin { to { transform: rotate(360deg); } }`}</style>
+      <circle cx="12" cy="12" r="3" />
+      <line x1="12" y1="2" x2="12" y2="5" />
+      <line x1="12" y1="19" x2="12" y2="22" />
+      <line x1="2" y1="12" x2="5" y2="12" />
+      <line x1="19" y1="12" x2="22" y2="12" />
+    </svg>
+  );
+}
+
+function shiftBoundsLng(
+  b: [[number, number], [number, number]],
+  deltaLng: number,
+): [[number, number], [number, number]] {
+  return [
+    [b[0][0] + deltaLng, b[0][1]],
+    [b[1][0] + deltaLng, b[1][1]],
+  ];
 }
 
 function zoomForRadius(miles: number): number {

@@ -19,18 +19,24 @@ import {
 
 import { ClubList, type ClubListHandle } from '@/components/clubs/ClubList';
 import { Map, type MapBounds } from '@/components/map';
+import { CategoryFilters } from '@/components/ui/CategoryFilters';
 import { CompactFiltersBar } from '@/components/ui/CompactFiltersBar';
 import { Container } from '@/components/ui/Container';
 import { LocationSearch } from '@/components/ui/LocationSearch';
-import { RadiusPicker } from '@/components/ui/RadiusPicker';
-import { RADIUS_MILES } from '@/lib/constants';
-import { copy } from '@/lib/copy';
-import type { GeocodeResult } from '@/lib/geo';
 import {
-  listAllClubs,
-  listClubsWithinRadius,
-  type ClubWithDistance,
-} from '@/lib/queries';
+  CATEGORY_FILTER_MAP,
+  RADIUS_MILES,
+  type Category,
+  type CategoryFilter,
+  type PlaceholderFilter,
+} from '@/lib/constants';
+import {
+  categoryFilterLabels,
+  copy,
+  placeholderFilterLabels,
+} from '@/lib/copy';
+import type { GeocodeResult } from '@/lib/geo';
+import { listAllClubs, type ClubWithDistance } from '@/lib/queries';
 
 type Center = { lng: number; lat: number; label: string };
 
@@ -43,13 +49,16 @@ export default function HomeScreen() {
   const isMobile = width > 0 && width < MOBILE_BREAKPOINT;
 
   const [center, setCenter] = useState<Center | null>(null);
-  const [radius, setRadius] = useState<number>(RADIUS_MILES.default);
-  const [clubs, setClubs] = useState<ClubWithDistance[] | null>(null);
   const [allClubs, setAllClubs] = useState<ClubWithDistance[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
   const [bounceTick, setBounceTick] = useState(0);
   const [bounds, setBounds] = useState<MapBounds | null>(null);
+  const [selectedFilters, setSelectedFilters] = useState<
+    ReadonlySet<CategoryFilter>
+  >(() => new Set());
+  const [placeholderMode, setPlaceholderMode] =
+    useState<PlaceholderFilter | null>(null);
 
   const [chromeHeight, setChromeHeight] = useState(0);
   const [showCompactBar, setShowCompactBar] = useState(false);
@@ -62,37 +71,17 @@ export default function HomeScreen() {
   });
   const listHandleRef = useRef<ClubListHandle>(null);
 
+  // Refetch on center change so `distance_miles` is measured from the searched
+  // location. The map's framing radius is fixed (RADIUS_MILES.default) and
+  // does not filter which pins are loaded — users can zoom out to see the
+  // rest of the country. Category filters are applied client-side below.
   useEffect(() => {
     let cancelled = false;
-    listAllClubs()
+    setError(null);
+    setSelectedSlug(null);
+    listAllClubs(center ? { lat: center.lat, lng: center.lng } : undefined)
       .then((data) => {
         if (!cancelled) setAllClubs(data);
-      })
-      .catch(() => {
-        // Non-fatal — the no-location map just renders without pins.
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!center) {
-      setClubs(null);
-      setSelectedSlug(null);
-      return;
-    }
-    let cancelled = false;
-    setClubs(null);
-    setSelectedSlug(null);
-    setError(null);
-    listClubsWithinRadius({
-      lat: center.lat,
-      lng: center.lng,
-      radiusMiles: radius,
-    })
-      .then((data) => {
-        if (!cancelled) setClubs(data);
       })
       .catch((err: Error) => {
         if (!cancelled) setError(err.message);
@@ -100,7 +89,7 @@ export default function HomeScreen() {
     return () => {
       cancelled = true;
     };
-  }, [center, radius]);
+  }, [center]);
 
   // Crossing into desktop width while the bar is up would leave it stranded.
   useEffect(() => {
@@ -109,6 +98,16 @@ export default function HomeScreen() {
 
   const onLocationSelect = (r: GeocodeResult) =>
     setCenter({ lng: r.longitude, lat: r.latitude, label: r.placeName });
+
+  const onLocate = useCallback(
+    (loc: { lng: number; lat: number }) =>
+      setCenter({
+        lng: loc.lng,
+        lat: loc.lat,
+        label: copy.home.currentLocationLabel,
+      }),
+    [],
+  );
 
   // Tap toggles inline expansion. List taps also bounce the corresponding
   // map pin so the user gets a kinetic confirmation of which one they hit.
@@ -130,18 +129,52 @@ export default function HomeScreen() {
 
   // The list shows whichever pins are currently visible in the map's viewport
   // — pan/zoom the map and the list re-filters on `moveend`.
-  const sourceClubs = center ? clubs : allClubs;
   const clubsInView = useMemo(() => {
-    if (!sourceClubs) return null;
-    if (!bounds) return sourceClubs;
-    return sourceClubs.filter(
+    if (!allClubs) return null;
+    if (!bounds) return allClubs;
+    return allClubs.filter(
       (c) =>
         c.latitude <= bounds.north &&
         c.latitude >= bounds.south &&
         c.longitude <= bounds.east &&
         c.longitude >= bounds.west,
     );
-  }, [sourceClubs, bounds]);
+  }, [allClubs, bounds]);
+
+  // Empty filter set = no narrowing; otherwise union the categories each
+  // chip represents (Youth chip covers all three youth_* categories).
+  const filteredClubs = useMemo(() => {
+    if (!clubsInView) return null;
+    if (selectedFilters.size === 0) return clubsInView;
+    const allowed = new Set<Category>();
+    selectedFilters.forEach((f) => {
+      CATEGORY_FILTER_MAP[f].forEach((c) => allowed.add(c));
+    });
+    return clubsInView.filter((c) => allowed.has(c.category as Category));
+  }, [clubsInView, selectedFilters]);
+
+  const onToggleFilter = useCallback((filter: CategoryFilter) => {
+    setSelectedFilters((cur) => {
+      const next = new Set(cur);
+      if (next.has(filter)) next.delete(filter);
+      else next.add(filter);
+      return next;
+    });
+  }, []);
+
+  // Radio-like: clicking the active mode clears it, clicking a different
+  // one switches. Two modes can't coexist — the placeholder body would be
+  // ambiguous.
+  const onPlaceholderToggle = useCallback((filter: PlaceholderFilter) => {
+    setPlaceholderMode((cur) => (cur === filter ? null : filter));
+  }, []);
+
+  const filtersSummary = useMemo(() => {
+    if (selectedFilters.size === 0) return copy.home.filtersChipAll;
+    return [...selectedFilters]
+      .map((f) => categoryFilterLabels[f])
+      .join(' · ');
+  }, [selectedFilters]);
 
   const onChromeLayout = useCallback((e: LayoutChangeEvent) => {
     setChromeHeight(e.nativeEvent.layout.height);
@@ -202,24 +235,32 @@ export default function HomeScreen() {
 
       <LocationSearch onSelect={onLocationSelect} />
 
-      <RadiusPicker value={radius} onChange={setRadius} />
+      <CategoryFilters
+        selected={selectedFilters}
+        onToggle={onToggleFilter}
+        placeholderMode={placeholderMode}
+        onPlaceholderToggle={onPlaceholderToggle}
+      />
 
       <View style={{ height: MAP_HEIGHT }} className="border-y border-border">
         <Map
           center={center ? { lng: center.lng, lat: center.lat } : undefined}
-          radiusMiles={radius}
-          clubs={sourceClubs ?? []}
+          radiusMiles={RADIUS_MILES.default}
+          clubs={filteredClubs ?? []}
           selectedSlug={selectedSlug}
           bounceTick={bounceTick}
           onPinSelect={onSelectFromMap}
           onBoundsChange={setBounds}
+          onLocate={onLocate}
         />
       </View>
 
-      {sourceClubs !== null && clubsInView !== null ? (
+      {placeholderMode === null &&
+      allClubs !== null &&
+      filteredClubs !== null ? (
         <View className="border-b border-border px-4 py-2">
           <Text className="text-eyebrow uppercase tracking-eyebrow text-muted">
-            {copy.home.resultsInView(clubsInView.length)}
+            {copy.home.resultsInView(filteredClubs.length)}
           </Text>
         </View>
       ) : null}
@@ -227,32 +268,43 @@ export default function HomeScreen() {
   );
 
   let belowChrome: ReactElement | null = null;
-  if (center && error) {
+  if (placeholderMode !== null) {
+    belowChrome = (
+      <View className="flex-1 items-center justify-center px-6">
+        <Text className="font-serif text-h1 text-fg">
+          {placeholderFilterLabels[placeholderMode]}
+        </Text>
+        <Text className="mt-2 text-body text-muted">
+          {copy.home.filtersComingSoon}
+        </Text>
+      </View>
+    );
+  } else if (center && error) {
     belowChrome = (
       <View className="flex-1 items-center justify-center px-6">
         <Text className="text-body text-fg">{copy.home.loadError}</Text>
         <Text className="mt-2 text-meta text-muted">{error}</Text>
       </View>
     );
-  } else if (sourceClubs === null) {
+  } else if (allClubs === null) {
     belowChrome = (
       <View className="flex-1 items-center justify-center">
         <ActivityIndicator />
       </View>
     );
-  } else if (center && clubs !== null && clubs.length === 0) {
+  } else if (filteredClubs && filteredClubs.length === 0) {
+    // If the geographic view has clubs but filters drop them all, name the
+    // filter as the cause so "Pan or zoom out" doesn't mislead.
+    const filterIsCause =
+      selectedFilters.size > 0 &&
+      clubsInView !== null &&
+      clubsInView.length > 0;
     belowChrome = (
       <View className="flex-1 items-center justify-center px-6">
         <Text className="text-center text-body text-fg">
-          {copy.home.emptyNoResults(radius, center.label)}
-        </Text>
-      </View>
-    );
-  } else if (clubsInView && clubsInView.length === 0) {
-    belowChrome = (
-      <View className="flex-1 items-center justify-center px-6">
-        <Text className="text-center text-body text-fg">
-          {copy.home.emptyNoClubsInView}
+          {filterIsCause
+            ? copy.home.emptyNoClubsForFilters
+            : copy.home.emptyNoClubsInView}
         </Text>
       </View>
     );
@@ -273,15 +325,15 @@ export default function HomeScreen() {
           >
             <CompactFiltersBar
               location={center.label}
-              radius={radius}
-              count={clubsInView?.length ?? null}
+              filters={filtersSummary}
+              count={filteredClubs?.length ?? null}
               onPress={onCompactBarPress}
             />
           </View>
         ) : null}
         <ClubList
           ref={listHandleRef}
-          clubs={belowChrome ? [] : clubsInView ?? []}
+          clubs={belowChrome ? [] : filteredClubs ?? []}
           selectedSlug={selectedSlug}
           onSelect={onSelectFromList}
           hideDistance={!center}
@@ -299,7 +351,7 @@ export default function HomeScreen() {
       {chrome}
       {belowChrome ?? (
         <ClubList
-          clubs={clubsInView ?? []}
+          clubs={filteredClubs ?? []}
           selectedSlug={selectedSlug}
           onSelect={onSelectFromList}
           hideDistance={!center}

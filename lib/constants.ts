@@ -26,8 +26,32 @@ export const CATEGORIES = [
   'youth_boys',
   'youth_girls',
   'youth_mixed',
+  'old_boys',
 ] as const;
 export type Category = (typeof CATEGORIES)[number];
+
+/**
+ * Filter chips on the home screen. Coarser than `CATEGORIES` — "youth" is one
+ * chip that maps to the three youth_* categories. `CATEGORY_FILTER_MAP` is
+ * the mapping; multi-select unions the matched categories.
+ */
+export const CATEGORY_FILTERS = ['mens', 'womens', 'youth', 'old_boys'] as const;
+export type CategoryFilter = (typeof CATEGORY_FILTERS)[number];
+
+export const CATEGORY_FILTER_MAP: Record<CategoryFilter, readonly Category[]> = {
+  mens: ['mens'],
+  womens: ['womens'],
+  youth: ['youth_boys', 'youth_girls', 'youth_mixed'],
+  old_boys: ['old_boys'],
+};
+
+/**
+ * View-mode chips that sit alongside category filters but aren't backed by
+ * data yet. Clicking one swaps the list area for a "Coming soon" placeholder.
+ * Mutually exclusive: at most one can be active at a time.
+ */
+export const PLACEHOLDER_FILTERS = ['tournaments', 'events'] as const;
+export type PlaceholderFilter = (typeof PLACEHOLDER_FILTERS)[number];
 
 export const STATUSES = ['pending', 'approved', 'rejected'] as const;
 export type Status = (typeof STATUSES)[number];

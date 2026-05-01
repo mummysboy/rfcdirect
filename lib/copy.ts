@@ -8,7 +8,14 @@
  * doesn't have to change on fork — only the values do.
  */
 
-import type { Category, DayOfWeek, Division, Status } from './constants';
+import type {
+  Category,
+  CategoryFilter,
+  DayOfWeek,
+  Division,
+  PlaceholderFilter,
+  Status,
+} from './constants';
 
 export const copy = {
   brand: {
@@ -27,28 +34,32 @@ export const copy = {
     locationPlaceholder: 'Enter a location',
     searchingNear: (location: string) => `Showing clubs near ${location}`,
     geocodingNote: 'Add a Mapbox token to .env to search any location.',
-    radiusLabel: (miles: number) => `${miles} mi`,
-    radiusEyebrow: 'Radius',
+    filtersEyebrow: 'Filters',
+    filtersComingSoon: 'Coming soon',
     emptyNoLocation: 'Enter a location to find rugby clubs near you',
-    emptyNoResults: (radius: number, location: string) =>
-      `No clubs found within ${radius} miles of ${location}. Try expanding your search.`,
-    expandRadiusCta: 'Expand radius +25 mi',
+    emptyNoResults: (location: string) =>
+      `No clubs match these filters near ${location}. Try clearing filters or panning the map.`,
     resultsCount: (n: number) =>
       n === 1 ? '1 club in range' : `${n} clubs in range`,
     resultsInView: (n: number) =>
       n === 1 ? '1 club in view' : `${n} clubs in view`,
     emptyNoClubsInView: 'No clubs in this area. Pan or zoom out.',
+    emptyNoClubsForFilters: 'No clubs match these filters in view. Try clearing a filter or panning the map.',
     findingClubs: 'Finding clubs near you…',
     loadError: "Couldn't load clubs. Pull to retry.",
-    filtersChipLabel: (location: string, radius: number, count: number) =>
-      `${location} · ${radius} mi · ${count === 1 ? '1 club' : `${count} clubs`}`,
-    filtersChipSearching: (location: string, radius: number) =>
-      `${location} · ${radius} mi · Searching…`,
-    filtersChipA11y: (location: string, radius: number, count: number) =>
-      `Filters: ${location}, ${radius} miles, ${
+    filtersChipLabel: (location: string, filters: string, count: number) =>
+      `${location} · ${filters} · ${count === 1 ? '1 club' : `${count} clubs`}`,
+    filtersChipSearching: (location: string, filters: string) =>
+      `${location} · ${filters} · Searching…`,
+    filtersChipA11y: (location: string, filters: string, count: number) =>
+      `Filters: ${location}, ${filters}, ${
         count === 1 ? '1 club' : `${count} clubs`
       }. Activate to edit.`,
     filtersChipEdit: 'Edit',
+    filtersChipAll: 'All clubs',
+    useMyLocation: 'Use my location',
+    locatingLabel: 'Locating…',
+    currentLocationLabel: 'Current location',
   },
 
   club: {
@@ -140,6 +151,8 @@ export const copy = {
     network: 'Connection trouble. Retrying…',
     retryCta: 'Retry',
     uploadFailed: "Couldn't upload that image. Try again.",
+    geolocationDenied: 'Location access blocked. Allow it in your browser settings.',
+    geolocationUnavailable: "Couldn't get your location. Try searching instead.",
   },
 } as const;
 
@@ -161,6 +174,19 @@ export const categoryLabels: Record<Category, string> = {
   youth_boys: 'Youth boys',
   youth_girls: 'Youth girls',
   youth_mixed: 'Youth mixed',
+  old_boys: 'Old Boys',
+};
+
+export const categoryFilterLabels: Record<CategoryFilter, string> = {
+  mens: "Men's",
+  womens: "Women's",
+  youth: 'Youth',
+  old_boys: 'Old Boys',
+};
+
+export const placeholderFilterLabels: Record<PlaceholderFilter, string> = {
+  tournaments: 'Tournaments',
+  events: 'Events',
 };
 
 export const statusLabels: Record<Status, string> = {

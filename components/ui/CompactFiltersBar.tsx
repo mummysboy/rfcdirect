@@ -4,7 +4,7 @@ import { copy } from '@/lib/copy';
 
 type Props = {
   location: string;
-  radius: number;
+  filters: string;
   /** `null` means a query is in flight; render the searching variant. */
   count: number | null;
   onPress: () => void;
@@ -12,15 +12,15 @@ type Props = {
 
 const HEIGHT = 48;
 
-export function CompactFiltersBar({ location, radius, count, onPress }: Props) {
+export function CompactFiltersBar({ location, filters, count, onPress }: Props) {
   const label =
     count === null
-      ? copy.home.filtersChipSearching(location, radius)
-      : copy.home.filtersChipLabel(location, radius, count);
+      ? copy.home.filtersChipSearching(location, filters)
+      : copy.home.filtersChipLabel(location, filters, count);
   const a11yLabel =
     count === null
-      ? copy.home.filtersChipSearching(location, radius)
-      : copy.home.filtersChipA11y(location, radius, count);
+      ? copy.home.filtersChipSearching(location, filters)
+      : copy.home.filtersChipA11y(location, filters, count);
 
   return (
     <Pressable
