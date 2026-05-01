@@ -1,4 +1,3 @@
-import { Link } from 'expo-router';
 import {
   useCallback,
   useEffect,
@@ -22,6 +21,7 @@ import { Map, type MapBounds } from '@/components/map';
 import { CategoryFilters } from '@/components/ui/CategoryFilters';
 import { CompactFiltersBar } from '@/components/ui/CompactFiltersBar';
 import { Container } from '@/components/ui/Container';
+import { HamburgerMenu } from '@/components/ui/HamburgerMenu';
 import { LocationSearch } from '@/components/ui/LocationSearch';
 import {
   CATEGORY_FILTER_MAP,
@@ -153,6 +153,17 @@ export default function HomeScreen() {
     return clubsInView.filter((c) => allowed.has(c.category as Category));
   }, [clubsInView, selectedFilters]);
 
+  // Default ordering: oldest first. Clubs without a founding year sink to
+  // the bottom so the heritage angle doesn't get diluted by undated rows.
+  const sortedClubs = useMemo(() => {
+    if (!filteredClubs) return null;
+    return [...filteredClubs].sort((a, b) => {
+      const ay = a.year_founded ?? Infinity;
+      const by = b.year_founded ?? Infinity;
+      return ay - by;
+    });
+  }, [filteredClubs]);
+
   const onToggleFilter = useCallback((filter: CategoryFilter) => {
     setSelectedFilters((cur) => {
       const next = new Set(cur);
@@ -228,9 +239,7 @@ export default function HomeScreen() {
     <>
       <View className="flex-row items-center justify-between border-b border-border px-4 py-3">
         <Text className="font-serif text-h1 text-fg">{copy.brand.wordmark}</Text>
-        <Link href="/sign-in" className="text-body text-accent">
-          {copy.nav.manageClub}
-        </Link>
+        <HamburgerMenu />
       </View>
 
       <LocationSearch onSelect={onLocationSelect} />
@@ -333,7 +342,7 @@ export default function HomeScreen() {
         ) : null}
         <ClubList
           ref={listHandleRef}
-          clubs={belowChrome ? [] : filteredClubs ?? []}
+          clubs={belowChrome ? [] : sortedClubs ?? []}
           selectedSlug={selectedSlug}
           onSelect={onSelectFromList}
           hideDistance={!center}
@@ -351,7 +360,7 @@ export default function HomeScreen() {
       {chrome}
       {belowChrome ?? (
         <ClubList
-          clubs={filteredClubs ?? []}
+          clubs={sortedClubs ?? []}
           selectedSlug={selectedSlug}
           onSelect={onSelectFromList}
           hideDistance={!center}

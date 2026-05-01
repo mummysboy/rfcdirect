@@ -93,8 +93,9 @@ app/                    # Expo Router routes
     index.tsx           # Home: search + map + list
     club/[slug].tsx     # Club profile
   (admin)/              # Club admin routes, auth-gated
-    sign-in.tsx
-    sign-up.tsx
+    (auth)/             # Sign-in / sign-up share an AuthLayout via this group's _layout
+      sign-in.tsx
+      sign-up.tsx
     dashboard.tsx
     clubs/[id]/edit.tsx
 components/

@@ -1,55 +1,45 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Linking, Pressable, Text, View } from 'react-native';
+import { Linking, Pressable, Text, View } from 'react-native';
 
 import { categoryLabels, copy, divisionLabels } from '@/lib/copy';
 import { formatPracticeDays, formatPracticeTimes } from '@/lib/practice';
 import { facebookUrl, instagramUrl, socialDisplay } from '@/lib/socials';
-import { type Club, getClubBySlug } from '@/lib/queries';
+import { type ClubWithDistance, getClubBySlug } from '@/lib/queries';
 
-type Props = { slug: string };
+type Props = {
+  /**
+   * Pre-loaded list-row data — most fields render immediately from this so
+   * the dropdown opens with content instead of a spinner. practice_days /
+   * practice_times aren't in the RPC return; they're fetched in the
+   * background and slotted in when ready.
+   */
+  club: ClubWithDistance;
+};
 
-type FetchState =
-  | { kind: 'loading' }
-  | { kind: 'ready'; club: Club }
-  | { kind: 'missing' }
-  | { kind: 'error' };
+type Practice = { days: string[]; times: string | null };
 
-export function ClubExpanded({ slug }: Props) {
-  const [state, setState] = useState<FetchState>({ kind: 'loading' });
+export function ClubExpanded({ club }: Props) {
+  const [practice, setPractice] = useState<Practice | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    setState({ kind: 'loading' });
-    getClubBySlug(slug)
-      .then((club) => {
-        if (cancelled) return;
-        setState(club ? { kind: 'ready', club } : { kind: 'missing' });
+    setPractice(null);
+    getClubBySlug(club.slug)
+      .then((full) => {
+        if (cancelled || !full) return;
+        setPractice({
+          days: full.practice_days ?? [],
+          times: full.practice_times ?? null,
+        });
       })
       .catch(() => {
-        if (!cancelled) setState({ kind: 'error' });
+        // Basic fields are already on screen — silently skip practice info.
       });
     return () => {
       cancelled = true;
     };
-  }, [slug]);
+  }, [club.slug]);
 
-  if (state.kind === 'loading') {
-    return (
-      <View className="border-b border-border bg-bg px-4 py-4">
-        <ActivityIndicator />
-      </View>
-    );
-  }
-
-  if (state.kind === 'error' || state.kind === 'missing') {
-    return (
-      <View className="border-b border-border bg-bg px-4 py-4">
-        <Text className="text-meta text-muted">{copy.errors.network}</Text>
-      </View>
-    );
-  }
-
-  const { club } = state;
   return (
     <View className="gap-3 border-b border-border bg-bg px-4 py-4">
       {club.description ? (
@@ -58,16 +48,16 @@ export function ClubExpanded({ slug }: Props) {
 
       <View className="gap-2">
         <DetailRow label={copy.club.fields.location} value={club.address_display} />
-        {club.practice_days && club.practice_days.length > 0 ? (
+        {practice && practice.days.length > 0 ? (
           <DetailRow
             label={copy.club.fields.practiceDays}
-            value={formatPracticeDays(club.practice_days)}
+            value={formatPracticeDays(practice.days)}
           />
         ) : null}
-        {club.practice_times ? (
+        {practice?.times ? (
           <DetailRow
             label={copy.club.fields.practiceTimes}
-            value={formatPracticeTimes(club.practice_times)}
+            value={formatPracticeTimes(practice.times)}
           />
         ) : null}
         {club.year_founded ? (

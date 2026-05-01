@@ -24,9 +24,13 @@ export const copy = {
   },
 
   nav: {
-    manageClub: 'Manage a club',
+    menu: 'Menu',
+    home: 'Home',
+    signIn: 'Sign in',
     signOut: 'Sign out',
     back: 'Back',
+    about: 'About us',
+    contact: 'Contact',
   },
 
   home: {
@@ -110,6 +114,14 @@ export const copy = {
     genericError: 'Something went wrong. Try again.',
     invalidEmail: 'Enter a valid email address',
     passwordTooShort: 'Password must be at least 8 characters',
+
+    brandPitch:
+      'The directory for finding rugby clubs and getting your club found.',
+
+    selectRoleLabel: 'Select role',
+    rolePlayerLabel: 'Player',
+    roleManagerLabel: 'Club manager',
+    roleRequired: 'Pick at least one — player, manager, or both.',
   },
 
   admin: {
@@ -138,6 +150,16 @@ export const copy = {
     listedContactLabel: (email: string) => `Listed contact: ${email}`,
     submittedByLabel: (email: string) => `Submitted by ${email}`,
     practiceLabel: 'Practice',
+  },
+
+  about: {
+    title: 'About us',
+    body: "Rugby Direct is a directory for rugby clubs. Find a club near you, or claim and edit your club's profile.",
+  },
+
+  contact: {
+    title: 'Contact',
+    body: "We'd love to hear from you. Drop us a line and we'll get back as soon as we can.",
   },
 
   notFound: {

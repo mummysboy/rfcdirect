@@ -14,7 +14,15 @@ export const signInSchema = z.object({
 });
 export type SignInInput = z.infer<typeof signInSchema>;
 
-export const signUpSchema = signInSchema;
+export const signUpSchema = signInSchema
+  .extend({
+    isManager: z.boolean(),
+    isPlayer: z.boolean(),
+  })
+  .refine((v) => v.isManager || v.isPlayer, {
+    message: copy.auth.roleRequired,
+    path: ['isManager'],
+  });
 export type SignUpInput = z.infer<typeof signUpSchema>;
 
 // Note: Controllers in `ClubForm` coerce empty TextInput strings to `null` on
